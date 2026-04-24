@@ -1,1 +1,0 @@
-function i(r){return"Rp "+r.toLocaleString("id-ID",{minimumFractionDigits:0,maximumFractionDigits:0})}function t(r){return parseInt(r.replace(/\./g,"").replace(/[^0-9]/g,""),10)||0}function e(r){const n=t(r);return n?n.toLocaleString("id-ID"):""}export{e as a,i as f,t as p};
