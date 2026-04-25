@@ -7,10 +7,20 @@ export interface DebtItem {
   date: string
   dueDate?: string
   isPaid: boolean
+  paidAmount: number
   paidDate?: string
+  payments: DebtPayment[]
   notes?: string
   createdAt: string
   updatedAt: string
+}
+
+export interface DebtPayment {
+  id: string
+  amount: number
+  date: string
+  note?: string
+  createdAt: string
 }
 
 export interface Activity {

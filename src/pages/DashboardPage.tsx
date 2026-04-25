@@ -19,6 +19,9 @@ export default function DashboardPage() {
   const goals = useGoalStore((s) => s.goals)
   const activities = useScheduleStore((s) => s.activities)
 
+  const getRemainingAmount = (amount: number, paidAmount: number | undefined) =>
+    Math.max(amount - (paidAmount ?? 0), 0)
+
   const today = toISODate(new Date())
   const todayActivities = activities.filter((a) => {
     if (!a.isActive) return false
@@ -34,8 +37,8 @@ export default function DashboardPage() {
     return false
   })
 
-  const unpaidDebts = debts.filter((d) => d.type === 'owe' && !d.isPaid)
-  const totalDebt = unpaidDebts.reduce((s, d) => s + d.amount, 0)
+  const unpaidDebts = debts.filter((d) => d.type === 'owe' && getRemainingAmount(d.amount, d.paidAmount) > 0)
+  const totalDebt = unpaidDebts.reduce((s, d) => s + getRemainingAmount(d.amount, d.paidAmount), 0)
 
   const pendingTodos = todos.filter((t) => !t.isCompleted)
   const inProgressGoals = goals.filter(
@@ -49,7 +52,9 @@ export default function DashboardPage() {
   const digestContext: DigestContext = {
     date: today,
     todayActivities,
-    pendingDebts: unpaidDebts.slice(0, 5),
+    pendingDebts: unpaidDebts
+      .map((d) => ({ ...d, amount: getRemainingAmount(d.amount, d.paidAmount) }))
+      .slice(0, 5),
     nearDueTodos: pendingTodos
       .filter((t) => t.dueDate && t.dueDate <= threeDaysStr)
       .slice(0, 5),

@@ -19,9 +19,12 @@ export function UpcomingDeadlines() {
   const todos = useTodoStore((s) => s.items)
   const goals = useGoalStore((s) => s.goals)
 
+  const getRemainingAmount = (amount: number, paidAmount: number | undefined) =>
+    Math.max(amount - (paidAmount ?? 0), 0)
+
   const deadlines: DeadlineItem[] = [
     ...debts
-      .filter((d) => !d.isPaid && d.dueDate)
+      .filter((d) => getRemainingAmount(d.amount, d.paidAmount) > 0 && d.dueDate)
       .map((d) => ({
         id: d.id,
         title: `Hutang ke ${d.personName}`,

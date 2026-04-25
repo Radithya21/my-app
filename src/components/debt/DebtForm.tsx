@@ -6,7 +6,7 @@ import type { DebtItem } from '../../types'
 import { formatCurrencyInput, parseCurrency } from '../../utils/formatCurrency'
 import { toISODate } from '../../utils/formatDate'
 
-type DebtFormData = Omit<DebtItem, 'id' | 'isPaid' | 'paidDate' | 'createdAt' | 'updatedAt'>
+type DebtFormData = Omit<DebtItem, 'id' | 'isPaid' | 'paidAmount' | 'payments' | 'paidDate' | 'createdAt' | 'updatedAt'>
 
 interface DebtFormProps {
   initialData?: Partial<DebtItem>

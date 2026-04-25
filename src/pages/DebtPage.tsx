@@ -17,7 +17,7 @@ type FilterType = 'all' | 'unpaid' | 'paid'
 type SortType = 'newest' | 'oldest' | 'largest' | 'due'
 
 export default function DebtPage() {
-  const { items, addItem, updateItem, deleteItem, markPaid, markUnpaid } = useDebtStore()
+  const { items, addItem, addPayment, updateItem, deleteItem, markUnpaid } = useDebtStore()
   const [activeTab, setActiveTab] = useState<TabType>('owe')
   const [filter, setFilter] = useState<FilterType>('all')
   const [sort, setSort] = useState<SortType>('newest')
@@ -25,19 +25,22 @@ export default function DebtPage() {
   const [showForm, setShowForm] = useState(false)
   const [editItem, setEditItem] = useState<DebtItem | null>(null)
 
+  const getRemainingAmount = (item: DebtItem) => Math.max(item.amount - (item.paidAmount ?? 0), 0)
+
   const tabItems = items.filter((i) => i.type === activeTab)
 
   const filtered = tabItems
     .filter((i) => {
-      if (filter === 'unpaid') return !i.isPaid
-      if (filter === 'paid') return i.isPaid
+      const remaining = getRemainingAmount(i)
+      if (filter === 'unpaid') return remaining > 0
+      if (filter === 'paid') return remaining <= 0
       return true
     })
     .filter((i) => i.personName.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
       if (sort === 'newest') return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       if (sort === 'oldest') return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-      if (sort === 'largest') return b.amount - a.amount
+      if (sort === 'largest') return getRemainingAmount(b) - getRemainingAmount(a)
       if (sort === 'due') {
         if (!a.dueDate && !b.dueDate) return 0
         if (!a.dueDate) return 1
@@ -47,13 +50,13 @@ export default function DebtPage() {
       return 0
     })
 
-  const handleAdd = (data: Omit<DebtItem, 'id' | 'isPaid' | 'paidDate' | 'createdAt' | 'updatedAt'>) => {
-    addItem({ ...data, isPaid: false })
+  const handleAdd = (data: Omit<DebtItem, 'id' | 'isPaid' | 'paidAmount' | 'payments' | 'paidDate' | 'createdAt' | 'updatedAt'>) => {
+    addItem({ ...data, isPaid: false, paidAmount: 0, payments: [] })
     toast.success('Catatan ditambahkan')
     setShowForm(false)
   }
 
-  const handleEdit = (data: Omit<DebtItem, 'id' | 'isPaid' | 'paidDate' | 'createdAt' | 'updatedAt'>) => {
+  const handleEdit = (data: Omit<DebtItem, 'id' | 'isPaid' | 'paidAmount' | 'payments' | 'paidDate' | 'createdAt' | 'updatedAt'>) => {
     if (!editItem) return
     updateItem(editItem.id, data)
     toast.success('Catatan diperbarui')
@@ -65,9 +68,21 @@ export default function DebtPage() {
     toast.success('Catatan dihapus')
   }
 
-  const handleMarkPaid = (id: string, paidDate: string) => {
-    markPaid(id, paidDate)
-    toast.success('Ditandai lunas')
+  const handleAddPayment = (id: string, amount: number, paymentDate: string, note?: string) => {
+    const current = items.find((i) => i.id === id)
+    if (!current) return
+
+    const remaining = getRemainingAmount(current)
+    const applied = Math.min(Math.max(0, amount), remaining)
+    if (applied <= 0) return
+
+    addPayment(id, amount, paymentDate, note)
+
+    if (applied >= remaining) {
+      toast.success('Pembayaran dicatat. Hutang sudah lunas.')
+    } else {
+      toast.success(`Pembayaran cicilan ${applied.toLocaleString('id-ID')} berhasil dicatat.`)
+    }
   }
 
   return (
@@ -155,7 +170,7 @@ export default function DebtPage() {
                 item={item}
                 onEdit={setEditItem}
                 onDelete={handleDelete}
-                onMarkPaid={handleMarkPaid}
+                onAddPayment={handleAddPayment}
                 onMarkUnpaid={markUnpaid}
               />
             </motion.div>

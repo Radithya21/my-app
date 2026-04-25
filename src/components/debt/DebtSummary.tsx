@@ -10,10 +10,13 @@ export function DebtSummary() {
   const items = useDebtStore((s) => s.items)
   const theme = useUIStore((s) => s.theme)
 
-  const unpaidDebts = items.filter((i) => i.type === 'owe' && !i.isPaid)
-  const unpaidLends = items.filter((i) => i.type === 'lend' && !i.isPaid)
-  const totalDebt = unpaidDebts.reduce((s, i) => s + i.amount, 0)
-  const totalLend = unpaidLends.reduce((s, i) => s + i.amount, 0)
+  const getRemainingAmount = (amount: number, paidAmount: number | undefined) =>
+    Math.max(amount - (paidAmount ?? 0), 0)
+
+  const unpaidDebts = items.filter((i) => i.type === 'owe' && getRemainingAmount(i.amount, i.paidAmount) > 0)
+  const unpaidLends = items.filter((i) => i.type === 'lend' && getRemainingAmount(i.amount, i.paidAmount) > 0)
+  const totalDebt = unpaidDebts.reduce((s, i) => s + getRemainingAmount(i.amount, i.paidAmount), 0)
+  const totalLend = unpaidLends.reduce((s, i) => s + getRemainingAmount(i.amount, i.paidAmount), 0)
   const net = totalLend - totalDebt
 
   const chartData = useMemo(() => {
