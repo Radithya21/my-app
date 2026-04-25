@@ -2,6 +2,7 @@ import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { Input, Textarea, Select } from '../ui/Input'
 import { Button } from '../ui/Button'
+import { AIAssistButton } from '../ui/AIAssistButton'
 import type { TodoItem, TodoPriority } from '../../types'
 
 type TodoFormData = Omit<TodoItem, 'id' | 'isCompleted' | 'completedAt' | 'createdAt' | 'updatedAt'>
@@ -24,6 +25,15 @@ export function TodoForm({ initialData, onSubmit, onCancel }: TodoFormProps) {
     goalId: initialData?.goalId ?? '',
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const handleAIResult = (fields: Record<string, unknown>) => {
+    setForm((f) => ({
+      ...f,
+      title: (fields.title as string) || f.title,
+      description: f.description || (fields.description as string) || '',
+      priority: f.priority !== 'medium' ? f.priority : (fields.priority as TodoPriority) || f.priority,
+    }))
+  }
 
   const validate = () => {
     const e: Record<string, string> = {}
@@ -52,14 +62,21 @@ export function TodoForm({ initialData, onSubmit, onCancel }: TodoFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <Input
-        label="Judul Tugas"
-        placeholder="Apa yang perlu dilakukan?"
-        value={form.title}
-        onChange={(e) => setForm({ ...form, title: e.target.value })}
-        error={errors.title}
-        autoFocus
-      />
+      <div className="flex items-end gap-2">
+        <div className="flex-1">
+          <Input
+            label="Judul Tugas"
+            placeholder="Apa yang perlu dilakukan?"
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+            error={errors.title}
+            autoFocus
+          />
+        </div>
+        <div className="mb-0.5">
+          <AIAssistButton formType="todo" titleValue={form.title} onResult={handleAIResult} />
+        </div>
+      </div>
 
       <Textarea
         label="Deskripsi (opsional)"

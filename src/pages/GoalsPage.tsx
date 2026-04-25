@@ -1,15 +1,17 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, Target } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { motion, AnimatePresence } from 'framer-motion'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { GoalCard } from '../components/goals/GoalCard'
 import { GoalForm } from '../components/goals/GoalForm'
+import { GoalCoachModal } from '../components/ai/GoalCoachModal'
 import { Modal } from '../components/ui/Modal'
 import { Button } from '../components/ui/Button'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { EmptyState } from '../components/ui/EmptyState'
 import { useGoalStore } from '../store/useGoalStore'
+import { useUIStore } from '../store/useUIStore'
 import type { Goal, GoalStatus } from '../types'
 
 type FilterType = 'all' | GoalStatus
@@ -31,6 +33,20 @@ export default function GoalsPage() {
   const [editGoal, setEditGoal] = useState<Goal | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
+  const [coachGoal, setCoachGoal] = useState<Goal | null>(null)
+  const [showCoach, setShowCoach] = useState(false)
+
+  useEffect(() => {
+    const prefill = sessionStorage.getItem('prefill-goal')
+    if (prefill) {
+      sessionStorage.removeItem('prefill-goal')
+      try {
+        const data = JSON.parse(prefill)
+        if (data.title) setShowForm(true)
+      } catch { /* ignore */ }
+    }
+  }, [])
+
   const filtered = goals.filter((g) => filter === 'all' || g.status === filter)
 
   const chartData = [
@@ -44,6 +60,14 @@ export default function GoalsPage() {
     addGoal({ ...data, status: 'not_started' })
     toast.success('Tujuan ditambahkan')
     setShowForm(false)
+    const apiKey = useUIStore.getState().getGeminiApiKey()
+    if (apiKey) {
+      const latestGoal = useGoalStore.getState().goals.at(-1)
+      if (latestGoal) {
+        setCoachGoal(latestGoal)
+        setShowCoach(true)
+      }
+    }
   }
 
   const handleEdit = (data: Omit<Goal, 'id' | 'steps' | 'createdAt' | 'updatedAt' | 'status'>) => {
@@ -167,6 +191,13 @@ export default function GoalsPage() {
         onCancel={() => setDeleteId(null)}
         title="Hapus Tujuan"
         message="Menghapus tujuan ini akan menghapus semua langkah di dalamnya."
+      />
+
+      <GoalCoachModal
+        isOpen={showCoach}
+        goal={coachGoal}
+        onClose={() => { setShowCoach(false); setCoachGoal(null) }}
+        onDone={() => { setShowCoach(false); setCoachGoal(null) }}
       />
     </div>
   )

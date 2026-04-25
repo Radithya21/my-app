@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown, Edit2, Trash2, Play, Pause, CheckCircle } from 'lucide-react'
 import { Badge } from '../ui/Badge'
+import { AILabel } from '../ui/AILabel'
 import { StepList } from './StepList'
+import { GoalProgressChat } from '../goal/GoalProgressChat'
 import type { Goal, GoalStatus, GoalStep } from '../../types'
 import { formatDateShort, daysUntil } from '../../utils/formatDate'
 
@@ -41,6 +43,7 @@ export function GoalCard({
   onToggleStep, onDeleteStep, onAddStep, onReorderSteps,
 }: GoalCardProps) {
   const [expanded, setExpanded] = useState(false)
+  const [activeTab, setActiveTab] = useState<'steps' | 'chat'>('steps')
 
   const completedSteps = goal.steps.filter((s: GoalStep) => s.isCompleted).length
   const totalSteps = goal.steps.length
@@ -61,7 +64,10 @@ export function GoalCard({
                 {goal.priority === 'high' ? 'Tinggi' : goal.priority === 'medium' ? 'Sedang' : 'Rendah'}
               </Badge>
             </div>
-            <h3 className="font-semibold text-text-primary mt-2">{goal.title}</h3>
+            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+              <h3 className="font-semibold text-text-primary">{goal.title}</h3>
+              {goal.aiCoached && <AILabel />}
+            </div>
             {goal.description && (
               <p className="text-sm text-text-secondary mt-0.5 line-clamp-2">{goal.description}</p>
             )}
@@ -148,16 +154,45 @@ export function GoalCard({
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 border-t border-border pt-3">
-              <p className="text-xs font-medium text-text-muted mb-2">Langkah-langkah</p>
-              <StepList
-                goalId={goal.id}
-                steps={goal.steps}
-                onToggle={onToggleStep}
-                onDelete={onDeleteStep}
-                onAdd={onAddStep}
-                onReorder={onReorderSteps}
-              />
+            <div className="border-t border-border">
+              <div className="flex px-4 pt-2 gap-1">
+                <button
+                  onClick={() => setActiveTab('steps')}
+                  className={[
+                    'px-3 py-1.5 text-xs font-medium rounded-lg transition-colors',
+                    activeTab === 'steps'
+                      ? 'bg-bg-secondary text-text-primary'
+                      : 'text-text-muted hover:text-text-primary',
+                  ].join(' ')}
+                >
+                  Langkah
+                </button>
+                <button
+                  onClick={() => setActiveTab('chat')}
+                  className={[
+                    'px-3 py-1.5 text-xs font-medium rounded-lg transition-colors',
+                    activeTab === 'chat'
+                      ? 'bg-bg-secondary text-text-primary'
+                      : 'text-text-muted hover:text-text-primary',
+                  ].join(' ')}
+                >
+                  Chat ✦
+                </button>
+              </div>
+              <div className="px-4 pb-4 pt-2">
+                {activeTab === 'steps' ? (
+                  <StepList
+                    goalId={goal.id}
+                    steps={goal.steps}
+                    onToggle={onToggleStep}
+                    onDelete={onDeleteStep}
+                    onAdd={onAddStep}
+                    onReorder={onReorderSteps}
+                  />
+                ) : (
+                  <GoalProgressChat goal={goal} />
+                )}
+              </div>
             </div>
           </motion.div>
         )}

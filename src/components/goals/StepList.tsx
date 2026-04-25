@@ -18,6 +18,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { Plus, GripVertical, Trash2, Check } from 'lucide-react'
 import type { GoalStep } from '../../types'
 import { formatDateMini, daysUntil } from '../../utils/formatDate'
+import { AILabel } from '../ui/AILabel'
 
 interface SortableStepProps {
   step: GoalStep
@@ -57,9 +58,12 @@ function SortableStep({ step, onToggle, onDelete }: SortableStepProps) {
         {step.isCompleted && <Check size={10} />}
       </button>
       <div className="flex-1 min-w-0">
-        <p className={['text-sm', step.isCompleted ? 'line-through text-text-muted' : 'text-text-primary'].join(' ')}>
-          {step.title}
-        </p>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <p className={['text-sm', step.isCompleted ? 'line-through text-text-muted' : 'text-text-primary'].join(' ')}>
+            {step.title}
+          </p>
+          {step.source === 'ai' && <AILabel />}
+        </div>
         {step.targetDate && (
           <p className={[
             'text-xs',

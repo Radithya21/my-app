@@ -1,6 +1,7 @@
 import { useLocation } from 'react-router-dom'
-import { Sun, Moon, Monitor } from 'lucide-react'
+import { Sun, Moon, Monitor, Command } from 'lucide-react'
 import { useUIStore } from '../../store/useUIStore'
+import { useAIStore } from '../../store/useAIStore'
 import type { Theme } from '../../types'
 
 const routeNames: Record<string, string> = {
@@ -33,6 +34,8 @@ const themeLabel: Record<Theme, string> = {
 export function Navbar() {
   const location = useLocation()
   const { theme, setTheme } = useUIStore()
+  const hasApiKey = !!useUIStore((s) => s.geminiApiKey)
+  const { openCommandBar, digestUnread } = useAIStore()
   const pageName = routeNames[location.pathname] ?? 'PersonalOS'
 
   return (
@@ -45,14 +48,29 @@ export function Navbar() {
         <span className="text-text-muted hidden md:block">/</span>
         <span className="font-medium text-text-primary text-sm">{pageName}</span>
       </div>
-      <button
-        onClick={() => setTheme(nextTheme[theme])}
-        aria-label={`Ubah tema: saat ini ${themeLabel[theme]}`}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary hover:bg-bg-secondary rounded-lg transition-colors"
-      >
-        {themeIcons[theme]}
-        <span className="hidden sm:block">{themeLabel[theme]}</span>
-      </button>
+      <div className="flex items-center gap-1">
+        {hasApiKey && (
+          <button
+            onClick={openCommandBar}
+            aria-label="Buka command bar (Space×2)"
+            className="relative flex items-center gap-1.5 px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary hover:bg-bg-secondary rounded-lg transition-colors"
+          >
+            <Command size={14} />
+            <span className="hidden sm:block">Space×2</span>
+            {digestUnread && (
+              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-accent rounded-full" />
+            )}
+          </button>
+        )}
+        <button
+          onClick={() => setTheme(nextTheme[theme])}
+          aria-label={`Ubah tema: saat ini ${themeLabel[theme]}`}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary hover:bg-bg-secondary rounded-lg transition-colors"
+        >
+          {themeIcons[theme]}
+          <span className="hidden sm:block">{themeLabel[theme]}</span>
+        </button>
+      </div>
     </header>
   )
 }

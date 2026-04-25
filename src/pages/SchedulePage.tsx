@@ -1,69 +1,105 @@
 import { useState } from 'react'
-import { Plus, LayoutGrid, List } from 'lucide-react'
+import { Plus, LayoutGrid, List, ChevronDown } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { motion, AnimatePresence } from 'framer-motion'
-import { WeeklyView } from '../components/schedule/WeeklyView'
-import { ActivityCard } from '../components/schedule/ActivityCard'
-import { ActivityForm } from '../components/schedule/ActivityForm'
+import { KesibukanCard } from '../components/schedule/KesibukanCard'
+import { KesibukanForm } from '../components/schedule/KesibukanForm'
 import { Modal } from '../components/ui/Modal'
 import { Button } from '../components/ui/Button'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { EmptyState } from '../components/ui/EmptyState'
-import { useScheduleStore } from '../store/useScheduleStore'
-import type { Activity, ActivityCategory } from '../types'
-import { Calendar } from 'lucide-react'
+import { useKesibukanStore, calcKesibukanProgress } from '../store/useKesibukanStore'
+import type { Kesibukan, KesibukanStatus } from '../types'
+import { Layers } from 'lucide-react'
 
-const categoryLabels: Record<ActivityCategory, string> = {
-  work: 'Kerja', personal: 'Pribadi', health: 'Kesehatan',
-  learning: 'Belajar', social: 'Sosial', other: 'Lainnya',
+type FilterStatus = 'semua' | KesibukanStatus
+type SortMode = 'deadline' | 'progress' | 'terbaru'
+type ViewMode = 'card' | 'list'
+
+const filterLabels: Record<FilterStatus, string> = {
+  semua: 'Semua',
+  aktif: 'Aktif',
+  ditunda: 'Ditunda',
+  selesai: 'Arsip',
 }
 
-type ViewMode = 'weekly' | 'list'
-
 export default function SchedulePage() {
-  const { activities, addActivity, updateActivity, deleteActivity, toggleActive } = useScheduleStore()
-  const [view, setView] = useState<ViewMode>('weekly')
+  const {
+    items,
+    add, update, remove, setStatus,
+    addSub, updateSub, deleteSub,
+    addStep, updateStep, deleteStep, toggleStep,
+  } = useKesibukanStore()
+
+  const [view, setView] = useState<ViewMode>('card')
+  const [filter, setFilter] = useState<FilterStatus>('aktif')
+  const [sort, setSort] = useState<SortMode>('deadline')
   const [showForm, setShowForm] = useState(false)
-  const [editActivity, setEditActivity] = useState<Activity | null>(null)
+  const [editItem, setEditItem] = useState<Kesibukan | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
-  const handleAdd = (data: Omit<Activity, 'id' | 'createdAt'>) => {
-    addActivity(data)
-    toast.success('Aktivitas ditambahkan')
+  const handleAdd = (data: Omit<Kesibukan, 'id' | 'subKesibukan' | 'createdAt' | 'updatedAt'>) => {
+    add(data)
+    toast.success('Kesibukan ditambahkan')
     setShowForm(false)
   }
 
-  const handleEdit = (data: Omit<Activity, 'id' | 'createdAt'>) => {
-    if (!editActivity) return
-    updateActivity(editActivity.id, data)
-    toast.success('Aktivitas diperbarui')
-    setEditActivity(null)
+  const handleEdit = (data: Omit<Kesibukan, 'id' | 'subKesibukan' | 'createdAt' | 'updatedAt'>) => {
+    if (!editItem) return
+    update(editItem.id, data)
+    toast.success('Kesibukan diperbarui')
+    setEditItem(null)
   }
 
   const handleDelete = (id: string) => {
-    deleteActivity(id)
-    toast.success('Aktivitas dihapus')
+    remove(id)
+    toast.success('Kesibukan dihapus')
     setDeleteId(null)
   }
 
-  const grouped = Object.entries(categoryLabels).reduce<Record<ActivityCategory, Activity[]>>(
-    (acc, [cat]) => {
-      acc[cat as ActivityCategory] = activities.filter((a) => a.category === cat as ActivityCategory)
-      return acc
-    },
-    {} as Record<ActivityCategory, Activity[]>
-  )
+  const handleSetStatus = (id: string, status: KesibukanStatus) => {
+    setStatus(id, status)
+    const labels: Record<KesibukanStatus, string> = { aktif: 'diaktifkan', ditunda: 'ditunda', selesai: 'diselesaikan' }
+    toast.success(`Kesibukan ${labels[status]}`)
+  }
+
+  const filtered = items.filter((k) => {
+    if (filter === 'semua') return true
+    return k.status === filter
+  })
+
+  const sorted = [...filtered].sort((a, b) => {
+    if (sort === 'terbaru') return b.createdAt.localeCompare(a.createdAt)
+    if (sort === 'progress') return calcKesibukanProgress(a) - calcKesibukanProgress(b)
+    if (sort === 'deadline') {
+      if (!a.deadline && !b.deadline) return 0
+      if (!a.deadline) return 1
+      if (!b.deadline) return -1
+      return a.deadline.localeCompare(b.deadline)
+    }
+    return 0
+  })
+
+  const activeCount = items.filter((k) => k.status === 'aktif').length
+  const archivedCount = items.filter((k) => k.status === 'selesai').length
 
   return (
     <div className="max-w-4xl mx-auto space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-text-primary">Mapping Kesibukan</h1>
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-text-primary">Mapping Kesibukan</h1>
+          <p className="text-xs text-text-muted mt-0.5">
+            {activeCount} aktif{archivedCount > 0 ? ` · ${archivedCount} arsip` : ''}
+          </p>
+        </div>
         <div className="flex items-center gap-2">
+          {/* View toggle */}
           <div className="flex gap-1 p-1 bg-bg-secondary rounded-lg">
             <button
-              onClick={() => setView('weekly')}
-              className={['p-1.5 rounded-md transition-colors', view === 'weekly' ? 'bg-bg-card shadow-sm text-text-primary' : 'text-text-muted hover:text-text-secondary'].join(' ')}
-              aria-label="Weekly view"
+              onClick={() => setView('card')}
+              className={['p-1.5 rounded-md transition-colors', view === 'card' ? 'bg-bg-card shadow-sm text-text-primary' : 'text-text-muted hover:text-text-secondary'].join(' ')}
+              aria-label="Card view"
             >
               <LayoutGrid size={14} />
             </button>
@@ -75,6 +111,21 @@ export default function SchedulePage() {
               <List size={14} />
             </button>
           </div>
+
+          {/* Sort */}
+          <div className="relative">
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortMode)}
+              className="text-xs bg-bg-secondary border border-border rounded-lg pl-2 pr-6 py-1.5 text-text-secondary outline-none focus:ring-1 focus:ring-accent appearance-none cursor-pointer"
+            >
+              <option value="deadline">Deadline Terdekat</option>
+              <option value="progress">Progress Terendah</option>
+              <option value="terbaru">Terbaru Ditambahkan</option>
+            </select>
+            <ChevronDown size={12} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+          </div>
+
           <Button size="sm" onClick={() => setShowForm(true)}>
             <Plus size={14} />
             Tambah
@@ -82,73 +133,123 @@ export default function SchedulePage() {
         </div>
       </div>
 
-      {activities.length === 0 ? (
+      {/* Filter tabs */}
+      <div className="flex gap-1 p-1 bg-bg-secondary rounded-xl w-fit">
+        {(Object.keys(filterLabels) as FilterStatus[]).map((f) => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={[
+              'px-3 py-1.5 text-xs font-medium rounded-lg transition-colors',
+              filter === f
+                ? 'bg-bg-card shadow-sm text-text-primary'
+                : 'text-text-muted hover:text-text-primary',
+            ].join(' ')}
+          >
+            {filterLabels[f]}
+            {f === 'aktif' && activeCount > 0 && (
+              <span className="ml-1.5 px-1.5 py-0.5 bg-accent text-white text-[10px] rounded-full">{activeCount}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      {sorted.length === 0 ? (
         <EmptyState
-          icon={<Calendar size={40} />}
-          title="Belum ada aktivitas"
-          message="Tambah rutinitas pertama kamu."
-          ctaLabel="Tambah Aktivitas"
-          onCta={() => setShowForm(true)}
+          icon={<Layers size={40} />}
+          title={filter === 'selesai' ? 'Belum ada arsip' : 'Belum ada kesibukan'}
+          message={
+            filter === 'selesai'
+              ? 'Kesibukan yang diselesaikan akan muncul di sini.'
+              : 'Tambah kesibukan pertama kamu — dari skripsi, magang, hingga proyek apapun.'
+          }
+          ctaLabel={filter !== 'selesai' ? 'Tambah Kesibukan' : undefined}
+          onCta={filter !== 'selesai' ? () => setShowForm(true) : undefined}
         />
-      ) : view === 'weekly' ? (
-        <WeeklyView
-          activities={activities}
-          onEdit={setEditActivity}
-          onDelete={(id) => setDeleteId(id)}
-          onToggleActive={toggleActive}
-        />
+      ) : view === 'card' ? (
+        <div className="grid gap-3 sm:grid-cols-1 lg:grid-cols-2">
+          <AnimatePresence mode="popLayout">
+            {sorted.map((k) => (
+              <motion.div
+                key={k.id}
+                layout
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
+              >
+                <KesibukanCard
+                  kesibukan={k}
+                  onEdit={setEditItem}
+                  onDelete={(id) => setDeleteId(id)}
+                  onSetStatus={handleSetStatus}
+                  onAddSub={addSub}
+                  onUpdateSub={updateSub}
+                  onDeleteSub={deleteSub}
+                  onToggleStep={toggleStep}
+                  onDeleteStep={deleteStep}
+                  onAddStep={addStep}
+                  onUpdateStep={updateStep}
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
       ) : (
-        <div className="space-y-6">
-          {(Object.entries(grouped) as [ActivityCategory, Activity[]][]).map(([cat, items]) => {
-            if (items.length === 0) return null
-            return (
-              <div key={cat}>
-                <h2 className="text-sm font-semibold text-text-muted mb-2">{categoryLabels[cat]}</h2>
-                <AnimatePresence mode="popLayout">
-                  {items.map((activity) => (
-                    <motion.div
-                      key={activity.id}
-                      layout
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="mb-2"
-                    >
-                      <ActivityCard
-                        activity={activity}
-                        onEdit={setEditActivity}
-                        onDelete={(id) => setDeleteId(id)}
-                        onToggleActive={toggleActive}
-                      />
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
-            )
-          })}
+        <div className="space-y-2">
+          <AnimatePresence mode="popLayout">
+            {sorted.map((k) => (
+              <motion.div
+                key={k.id}
+                layout
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+              >
+                <KesibukanCard
+                  kesibukan={k}
+                  onEdit={setEditItem}
+                  onDelete={(id) => setDeleteId(id)}
+                  onSetStatus={handleSetStatus}
+                  onAddSub={addSub}
+                  onUpdateSub={updateSub}
+                  onDeleteSub={deleteSub}
+                  onToggleStep={toggleStep}
+                  onDeleteStep={deleteStep}
+                  onAddStep={addStep}
+                  onUpdateStep={updateStep}
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       )}
 
-      <Modal isOpen={showForm} onClose={() => setShowForm(false)} title="Tambah Aktivitas">
-        <ActivityForm onSubmit={handleAdd} onCancel={() => setShowForm(false)} />
+      {/* Add modal */}
+      <Modal isOpen={showForm} onClose={() => setShowForm(false)} title="Tambah Kesibukan Baru">
+        <KesibukanForm onSubmit={handleAdd} onCancel={() => setShowForm(false)} />
       </Modal>
 
-      <Modal isOpen={!!editActivity} onClose={() => setEditActivity(null)} title="Edit Aktivitas">
-        {editActivity && (
-          <ActivityForm
-            initialData={editActivity}
+      {/* Edit modal */}
+      <Modal isOpen={!!editItem} onClose={() => setEditItem(null)} title="Edit Kesibukan">
+        {editItem && (
+          <KesibukanForm
+            initialData={editItem}
             onSubmit={handleEdit}
-            onCancel={() => setEditActivity(null)}
+            onCancel={() => setEditItem(null)}
           />
         )}
       </Modal>
 
+      {/* Delete confirm */}
       <ConfirmDialog
         isOpen={!!deleteId}
         onConfirm={() => deleteId && handleDelete(deleteId)}
         onCancel={() => setDeleteId(null)}
-        title="Hapus Aktivitas"
-        message="Yakin ingin menghapus aktivitas ini?"
+        title="Hapus Kesibukan"
+        message="Yakin ingin menghapus kesibukan ini? Semua sub-kesibukan dan langkah di dalamnya juga akan dihapus."
       />
     </div>
   )

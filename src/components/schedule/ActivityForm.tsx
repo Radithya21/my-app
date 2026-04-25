@@ -2,6 +2,7 @@ import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { Input, Textarea, Select } from '../ui/Input'
 import { Button } from '../ui/Button'
+import { AIAssistButton } from '../ui/AIAssistButton'
 import type { Activity, ActivityCategory } from '../../types'
 import { toISODate } from '../../utils/formatDate'
 
@@ -30,6 +31,15 @@ export function ActivityForm({ initialData, onSubmit, onCancel }: ActivityFormPr
     isActive: initialData?.isActive ?? true,
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const handleAIResult = (fields: Record<string, unknown>) => {
+    setForm((f) => ({
+      ...f,
+      title: (fields.title as string) || f.title,
+      category: f.category !== 'other' ? f.category : (fields.category as ActivityCategory) || f.category,
+      description: f.description || (fields.description as string) || '',
+    }))
+  }
 
   const validate = () => {
     const e: Record<string, string> = {}
@@ -72,13 +82,20 @@ export function ActivityForm({ initialData, onSubmit, onCancel }: ActivityFormPr
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <Input
-        label="Judul Aktivitas"
-        placeholder="Apa kegiatannya?"
-        value={form.title}
-        onChange={(e) => setForm({ ...form, title: e.target.value })}
-        error={errors.title}
-      />
+      <div className="flex items-end gap-2">
+        <div className="flex-1">
+          <Input
+            label="Judul Aktivitas"
+            placeholder="Apa kegiatannya?"
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+            error={errors.title}
+          />
+        </div>
+        <div className="mb-0.5">
+          <AIAssistButton formType="activity" titleValue={form.title} onResult={handleAIResult} />
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 gap-3">
         <Select

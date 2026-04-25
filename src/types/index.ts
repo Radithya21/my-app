@@ -39,6 +39,7 @@ export interface GoalStep {
   isCompleted: boolean
   completedAt?: string
   order: number
+  source?: 'manual' | 'ai'
 }
 
 export interface Goal {
@@ -50,6 +51,7 @@ export interface Goal {
   status: 'not_started' | 'in_progress' | 'completed' | 'paused'
   steps: GoalStep[]
   priority: 'low' | 'medium' | 'high'
+  aiCoached?: boolean
   createdAt: string
   updatedAt: string
 }
@@ -79,3 +81,85 @@ export type GoalCategory = Goal['category']
 export type GoalStatus = Goal['status']
 export type Priority = 'low' | 'medium' | 'high'
 export type TodoPriority = TodoItem['priority']
+export type AIModel = 'gemini-2.0-flash-lite' | 'gemini-2.0-flash' | 'gemini-1.5-flash'
+
+export interface CommandResult {
+  intent: 'create_todo' | 'create_goal' | 'create_debt' | 'create_activity' | 'query' | 'unknown'
+  parsedData?: {
+    title?: string
+    priority?: TodoItem['priority']
+    dueDate?: string
+    amount?: number
+    personName?: string
+    type?: 'owe' | 'lend'
+    description?: string
+    category?: string
+  }
+  answer?: string
+  confidence: 'high' | 'low'
+}
+
+export interface CommandHistoryItem {
+  id: string
+  query: string
+  result: CommandResult
+  executedAt: string
+}
+
+export interface GoalChatMessage {
+  id: string
+  goalId: string
+  role: 'user' | 'assistant'
+  content: string
+  createdAt: string
+}
+
+export interface AICacheEntry {
+  id: string
+  cacheKey: string
+  value: string
+  createdAt: string
+  expiresAt: string
+}
+
+export interface DigestContext {
+  date: string
+  todayActivities: Activity[]
+  pendingDebts: DebtItem[]
+  nearDueTodos: TodoItem[]
+  urgentTodos: TodoItem[]
+  activeGoals: Goal[]
+}
+
+// Kesibukan v2.0 — Hierarchical Activity Management
+
+export interface KesibukanStep {
+  id: string
+  name: string
+  deadline?: string
+  isCompleted: boolean
+  notes?: string
+  order: number
+}
+
+export interface SubKesibukan {
+  id: string
+  name: string
+  deadline?: string
+  steps: KesibukanStep[]
+  order: number
+}
+
+export type KesibukanStatus = 'aktif' | 'ditunda' | 'selesai'
+
+export interface Kesibukan {
+  id: string
+  name: string
+  description?: string
+  deadline?: string
+  status: KesibukanStatus
+  colorLabel: string
+  subKesibukan: SubKesibukan[]
+  createdAt: string
+  updatedAt: string
+}

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { Input, Textarea, Select } from '../ui/Input'
 import { Button } from '../ui/Button'
+import { AIAssistButton } from '../ui/AIAssistButton'
 import type { Goal, GoalCategory } from '../../types'
 
 type GoalFormData = Omit<Goal, 'id' | 'steps' | 'createdAt' | 'updatedAt' | 'status'>
@@ -21,6 +22,14 @@ export function GoalForm({ initialData, onSubmit, onCancel }: GoalFormProps) {
     priority: initialData?.priority ?? 'medium' as Goal['priority'],
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const handleAIResult = (fields: Record<string, unknown>) => {
+    setForm((f) => ({
+      ...f,
+      title: (fields.title as string) || f.title,
+      description: f.description || (fields.description as string) || '',
+    }))
+  }
 
   const validate = () => {
     const e: Record<string, string> = {}
@@ -46,13 +55,20 @@ export function GoalForm({ initialData, onSubmit, onCancel }: GoalFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <Input
-        label="Judul Tujuan"
-        placeholder="Apa yang ingin kamu capai?"
-        value={form.title}
-        onChange={(e) => setForm({ ...form, title: e.target.value })}
-        error={errors.title}
-      />
+      <div className="flex items-end gap-2">
+        <div className="flex-1">
+          <Input
+            label="Judul Tujuan"
+            placeholder="Apa yang ingin kamu capai?"
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+            error={errors.title}
+          />
+        </div>
+        <div className="mb-0.5">
+          <AIAssistButton formType="goal" titleValue={form.title} onResult={handleAIResult} />
+        </div>
+      </div>
 
       <Textarea
         label="Deskripsi (opsional)"

@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { CreditCard, Calendar, CheckSquare, Target, Plus } from 'lucide-react'
-import { GreetingHeader } from '../components/dashboard/GreetingHeader'
+import { DailyDigest } from '../components/ai/DailyDigest'
+import { AIOnboardingBanner } from '../components/ai/AIOnboardingBanner'
 import { SummaryCard } from '../components/dashboard/SummaryCard'
 import { UpcomingDeadlines } from '../components/dashboard/UpcomingDeadlines'
 import { useDebtStore } from '../store/useDebtStore'
@@ -9,6 +10,7 @@ import { useGoalStore } from '../store/useGoalStore'
 import { useScheduleStore } from '../store/useScheduleStore'
 import { formatCurrency } from '../utils/formatCurrency'
 import { toISODate } from '../utils/formatDate'
+import type { DigestContext } from '../types'
 
 export default function DashboardPage() {
   const navigate = useNavigate()
@@ -40,9 +42,27 @@ export default function DashboardPage() {
     (g) => g.status === 'in_progress' || g.status === 'not_started'
   )
 
+  const threeDaysLater = new Date()
+  threeDaysLater.setDate(threeDaysLater.getDate() + 3)
+  const threeDaysStr = toISODate(threeDaysLater)
+
+  const digestContext: DigestContext = {
+    date: today,
+    todayActivities,
+    pendingDebts: unpaidDebts.slice(0, 5),
+    nearDueTodos: pendingTodos
+      .filter((t) => t.dueDate && t.dueDate <= threeDaysStr)
+      .slice(0, 5),
+    urgentTodos: pendingTodos
+      .filter((t) => t.priority === 'urgent' || t.priority === 'high')
+      .slice(0, 5),
+    activeGoals: inProgressGoals,
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <GreetingHeader />
+      <DailyDigest context={digestContext} />
+      <AIOnboardingBanner />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <SummaryCard
