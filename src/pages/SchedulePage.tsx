@@ -1,20 +1,20 @@
 import { useState } from 'react'
-import { Plus, LayoutGrid, List, ChevronDown } from 'lucide-react'
+import { Plus, LayoutGrid, List, ChevronDown, Kanban, Layers } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { motion, AnimatePresence } from 'framer-motion'
 import { KesibukanCard } from '../components/schedule/KesibukanCard'
 import { KesibukanForm } from '../components/schedule/KesibukanForm'
+import { KanbanView } from '../components/schedule/KanbanView'
 import { Modal } from '../components/ui/Modal'
 import { Button } from '../components/ui/Button'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { EmptyState } from '../components/ui/EmptyState'
 import { useKesibukanStore, calcKesibukanProgress } from '../store/useKesibukanStore'
 import type { Kesibukan, KesibukanStatus } from '../types'
-import { Layers } from 'lucide-react'
 
 type FilterStatus = 'semua' | KesibukanStatus
 type SortMode = 'deadline' | 'progress' | 'terbaru'
-type ViewMode = 'card' | 'list'
+type ViewMode = 'card' | 'list' | 'kanban'
 
 const filterLabels: Record<FilterStatus, string> = {
   semua: 'Semua',
@@ -59,9 +59,15 @@ export default function SchedulePage() {
 
   const handleSetStatus = (id: string, status: KesibukanStatus) => {
     setStatus(id, status)
-    const labels: Record<KesibukanStatus, string> = { aktif: 'diaktifkan', ditunda: 'ditunda', selesai: 'diselesaikan' }
+    const labels: Record<KesibukanStatus, string> = {
+      aktif: 'diaktifkan',
+      ditunda: 'ditunda',
+      selesai: 'diselesaikan',
+    }
     toast.success(`Kesibukan ${labels[status]}`)
   }
+
+  const isKanban = view === 'kanban'
 
   const filtered = items.filter((k) => {
     if (filter === 'semua') return true
@@ -83,8 +89,34 @@ export default function SchedulePage() {
   const activeCount = items.filter((k) => k.status === 'aktif').length
   const archivedCount = items.filter((k) => k.status === 'selesai').length
 
+  const viewToggle = (
+    <div className="flex gap-1 p-1 bg-bg-secondary rounded-lg">
+      {(
+        [
+          { id: 'card', icon: <LayoutGrid size={14} />, label: 'Card view' },
+          { id: 'list', icon: <List size={14} />, label: 'List view' },
+          { id: 'kanban', icon: <Kanban size={14} />, label: 'Kanban view' },
+        ] as { id: ViewMode; icon: React.ReactNode; label: string }[]
+      ).map(({ id, icon, label }) => (
+        <button
+          key={id}
+          onClick={() => setView(id)}
+          aria-label={label}
+          className={[
+            'p-1.5 rounded-md transition-colors',
+            view === id
+              ? 'bg-bg-card shadow-sm text-text-primary'
+              : 'text-text-muted hover:text-text-secondary',
+          ].join(' ')}
+        >
+          {icon}
+        </button>
+      ))}
+    </div>
+  )
+
   return (
-    <div className="max-w-4xl mx-auto space-y-4">
+    <div className={['space-y-4', isKanban ? '' : 'max-w-4xl mx-auto'].join(' ')}>
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
@@ -94,37 +126,25 @@ export default function SchedulePage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {/* View toggle */}
-          <div className="flex gap-1 p-1 bg-bg-secondary rounded-lg">
-            <button
-              onClick={() => setView('card')}
-              className={['p-1.5 rounded-md transition-colors', view === 'card' ? 'bg-bg-card shadow-sm text-text-primary' : 'text-text-muted hover:text-text-secondary'].join(' ')}
-              aria-label="Card view"
-            >
-              <LayoutGrid size={14} />
-            </button>
-            <button
-              onClick={() => setView('list')}
-              className={['p-1.5 rounded-md transition-colors', view === 'list' ? 'bg-bg-card shadow-sm text-text-primary' : 'text-text-muted hover:text-text-secondary'].join(' ')}
-              aria-label="List view"
-            >
-              <List size={14} />
-            </button>
-          </div>
+          {viewToggle}
 
-          {/* Sort */}
-          <div className="relative">
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value as SortMode)}
-              className="text-xs bg-bg-secondary border border-border rounded-lg pl-2 pr-6 py-1.5 text-text-secondary outline-none focus:ring-1 focus:ring-accent appearance-none cursor-pointer"
-            >
-              <option value="deadline">Deadline Terdekat</option>
-              <option value="progress">Progress Terendah</option>
-              <option value="terbaru">Terbaru Ditambahkan</option>
-            </select>
-            <ChevronDown size={12} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
-          </div>
+          {!isKanban && (
+            <div className="relative">
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value as SortMode)}
+                className="text-xs bg-bg-secondary border border-border rounded-lg pl-2 pr-6 py-1.5 text-text-secondary outline-none focus:ring-1 focus:ring-accent appearance-none cursor-pointer"
+              >
+                <option value="deadline">Deadline Terdekat</option>
+                <option value="progress">Progress Terendah</option>
+                <option value="terbaru">Terbaru Ditambahkan</option>
+              </select>
+              <ChevronDown
+                size={12}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
+              />
+            </div>
+          )}
 
           <Button size="sm" onClick={() => setShowForm(true)}>
             <Plus size={14} />
@@ -133,29 +153,35 @@ export default function SchedulePage() {
         </div>
       </div>
 
-      {/* Filter tabs */}
-      <div className="flex gap-1 p-1 bg-bg-secondary rounded-xl w-fit">
-        {(Object.keys(filterLabels) as FilterStatus[]).map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={[
-              'px-3 py-1.5 text-xs font-medium rounded-lg transition-colors',
-              filter === f
-                ? 'bg-bg-card shadow-sm text-text-primary'
-                : 'text-text-muted hover:text-text-primary',
-            ].join(' ')}
-          >
-            {filterLabels[f]}
-            {f === 'aktif' && activeCount > 0 && (
-              <span className="ml-1.5 px-1.5 py-0.5 bg-accent text-white text-[10px] rounded-full">{activeCount}</span>
-            )}
-          </button>
-        ))}
-      </div>
+      {/* Filter tabs — hidden in kanban mode */}
+      {!isKanban && (
+        <div className="flex gap-1 p-1 bg-bg-secondary rounded-xl w-fit">
+          {(Object.keys(filterLabels) as FilterStatus[]).map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={[
+                'px-3 py-1.5 text-xs font-medium rounded-lg transition-colors',
+                filter === f
+                  ? 'bg-bg-card shadow-sm text-text-primary'
+                  : 'text-text-muted hover:text-text-primary',
+              ].join(' ')}
+            >
+              {filterLabels[f]}
+              {f === 'aktif' && activeCount > 0 && (
+                <span className="ml-1.5 px-1.5 py-0.5 bg-accent text-white text-[10px] rounded-full">
+                  {activeCount}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Content */}
-      {sorted.length === 0 ? (
+      {isKanban ? (
+        <KanbanView items={items} onSetStatus={handleSetStatus} />
+      ) : sorted.length === 0 ? (
         <EmptyState
           icon={<Layers size={40} />}
           title={filter === 'selesai' ? 'Belum ada arsip' : 'Belum ada kesibukan'}
