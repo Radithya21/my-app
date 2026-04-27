@@ -13,31 +13,33 @@ import {
   type DraggableAttributes,
 } from '@dnd-kit/core'
 import type { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities'
-import { GripVertical, Calendar } from 'lucide-react'
-import type { Kesibukan, KesibukanStatus } from '../../types'
-import { calcKesibukanProgress } from '../../store/useKesibukanStore'
+import { GripVertical, Calendar, CheckCircle2, Circle } from 'lucide-react'
+import type { Kesibukan, SubKesibukan, KesibukanStep } from '../../types'
+import { calcSubProgress, calcSubStatus } from '../../store/useKesibukanStore'
 import { formatDateMini, daysUntil } from '../../utils/formatDate'
 
+type SubColId = 'belum_mulai' | 'berjalan' | 'selesai'
+
 const COLUMNS: {
-  id: KesibukanStatus
+  id: SubColId
   label: string
   dot: string
   activeBg: string
   activeBorder: string
 }[] = [
   {
-    id: 'aktif',
-    label: 'Aktif',
+    id: 'belum_mulai',
+    label: 'Belum Mulai',
+    dot: 'bg-gray-400',
+    activeBg: 'bg-gray-50 dark:bg-gray-900/20',
+    activeBorder: 'border-gray-300 dark:border-gray-600/50',
+  },
+  {
+    id: 'berjalan',
+    label: 'Sedang Berjalan',
     dot: 'bg-blue-500',
     activeBg: 'bg-blue-50 dark:bg-blue-950/20',
     activeBorder: 'border-blue-300 dark:border-blue-700/50',
-  },
-  {
-    id: 'ditunda',
-    label: 'Ditunda',
-    dot: 'bg-amber-500',
-    activeBg: 'bg-amber-50 dark:bg-amber-950/20',
-    activeBorder: 'border-amber-300 dark:border-amber-700/50',
   },
   {
     id: 'selesai',
@@ -48,23 +50,66 @@ const COLUMNS: {
   },
 ]
 
-// Shared visual for both draggable cards and the drag overlay
-function KanbanCardVisual({
-  kesibukan,
+interface SubKesibukanFlat {
+  sub: SubKesibukan
+  parentId: string
+  parentName: string
+  parentColor: string
+  status: SubColId
+  draggableId: string
+}
+
+function flattenSubs(items: Kesibukan[]): SubKesibukanFlat[] {
+  return items.flatMap((k) =>
+    k.subKesibukan.map((sub) => ({
+      sub,
+      parentId: k.id,
+      parentName: k.name,
+      parentColor: k.colorLabel,
+      status: calcSubStatus(sub) as SubColId,
+      draggableId: `${k.id}::${sub.id}`,
+    }))
+  )
+}
+
+function StepRow({ step }: { step: KesibukanStep }) {
+  return (
+    <div className="flex items-start gap-1.5 py-0.5">
+      {step.isCompleted ? (
+        <CheckCircle2 size={11} className="mt-0.5 shrink-0 text-green-500" />
+      ) : (
+        <Circle size={11} className="mt-0.5 shrink-0 text-text-muted" />
+      )}
+      <span
+        className={[
+          'text-[10px] leading-tight',
+          step.isCompleted ? 'line-through text-text-muted' : 'text-text-secondary',
+        ].join(' ')}
+      >
+        {step.name}
+      </span>
+    </div>
+  )
+}
+
+function SubKanbanCardVisual({
+  flat,
   overlay = false,
   listeners,
   attributes,
 }: {
-  kesibukan: Kesibukan
+  flat: SubKesibukanFlat
   overlay?: boolean
   listeners?: SyntheticListenerMap
   attributes?: DraggableAttributes
 }) {
-  const progress = calcKesibukanProgress(kesibukan)
-  const totalSteps = kesibukan.subKesibukan.reduce((s, sub) => s + sub.steps.length, 0)
-  const daysLeft = kesibukan.deadline ? daysUntil(kesibukan.deadline) : null
+  const { sub, parentName, parentColor } = flat
+  const progress = calcSubProgress(sub)
+  const daysLeft = sub.deadline ? daysUntil(sub.deadline) : null
   const isOverdue = daysLeft !== null && daysLeft < 0
   const isCritical = daysLeft !== null && daysLeft >= 0 && daysLeft <= 3
+  const visibleSteps = sub.steps.slice(0, 4)
+  const extraCount = sub.steps.length - visibleSteps.length
 
   return (
     <div
@@ -73,7 +118,7 @@ function KanbanCardVisual({
         overlay ? 'shadow-xl rotate-1 scale-[1.02]' : 'hover:shadow-sm',
       ].join(' ')}
     >
-      <div className="h-1 shrink-0" style={{ backgroundColor: kesibukan.colorLabel }} />
+      <div className="h-1 shrink-0" style={{ backgroundColor: parentColor }} />
       <div className="p-3 flex items-start gap-2">
         {listeners && (
           <button
@@ -87,30 +132,52 @@ function KanbanCardVisual({
           </button>
         )}
         <div className="flex-1 min-w-0">
+          {/* Parent kesibukan badge */}
+          <div
+            className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium mb-1 max-w-full truncate"
+            style={{ backgroundColor: `${parentColor}25`, color: parentColor }}
+          >
+            {parentName}
+          </div>
+
+          {/* Sub-kesibukan name */}
           <h3 className="text-sm font-semibold text-text-primary leading-snug line-clamp-2">
-            {kesibukan.name}
+            {sub.name}
           </h3>
-          {kesibukan.description && (
-            <p className="text-xs text-text-secondary mt-0.5 line-clamp-2">{kesibukan.description}</p>
+
+          {/* Steps list */}
+          {sub.steps.length > 0 && (
+            <div className="mt-2 space-y-0">
+              {visibleSteps.map((step) => (
+                <StepRow key={step.id} step={step} />
+              ))}
+              {extraCount > 0 && (
+                <p className="text-[10px] text-text-muted pl-4">+{extraCount} langkah lainnya</p>
+              )}
+            </div>
           )}
 
-          {totalSteps > 0 && (
-            <div className="mt-2.5 space-y-1">
+          {/* Progress bar */}
+          {sub.steps.length > 0 && (
+            <div className="mt-2 space-y-1">
               <div className="flex justify-between text-[10px] text-text-muted">
-                <span>{kesibukan.subKesibukan.length} sub-kesibukan</span>
+                <span>
+                  {sub.steps.filter((s) => s.isCompleted).length}/{sub.steps.length} selesai
+                </span>
                 <span className="font-medium">{progress}%</span>
               </div>
               <div className="h-1 bg-bg-secondary rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full transition-[width] duration-500"
-                  style={{ width: `${progress}%`, backgroundColor: kesibukan.colorLabel }}
+                  style={{ width: `${progress}%`, backgroundColor: parentColor }}
                 />
               </div>
             </div>
           )}
 
-          {kesibukan.deadline && (
-            <div className="flex items-center gap-1 mt-2">
+          {/* Deadline */}
+          {sub.deadline && (
+            <div className="flex items-center gap-1 mt-1.5">
               <Calendar
                 size={10}
                 className={
@@ -127,7 +194,7 @@ function KanbanCardVisual({
                     : 'text-text-muted',
                 ].join(' ')}
               >
-                {formatDateMini(kesibukan.deadline)}
+                {formatDateMini(sub.deadline)}
                 {isOverdue ? ' · Terlambat' : isCritical ? ` · ${daysLeft}h lagi` : ''}
               </span>
             </div>
@@ -138,38 +205,36 @@ function KanbanCardVisual({
   )
 }
 
-function DraggableCard({ kesibukan, isActive }: { kesibukan: Kesibukan; isActive: boolean }) {
-  const { attributes, listeners, setNodeRef } = useDraggable({ id: kesibukan.id })
+function DraggableSubCard({ flat, isActive }: { flat: SubKesibukanFlat; isActive: boolean }) {
+  const { attributes, listeners, setNodeRef } = useDraggable({ id: flat.draggableId })
   return (
     <div ref={setNodeRef} className={isActive ? 'opacity-30' : ''}>
-      <KanbanCardVisual kesibukan={kesibukan} listeners={listeners} attributes={attributes} />
+      <SubKanbanCardVisual flat={flat} listeners={listeners} attributes={attributes} />
     </div>
   )
 }
 
 function DroppableColumn({
   col,
-  items,
+  flats,
   activeId,
 }: {
   col: (typeof COLUMNS)[number]
-  items: Kesibukan[]
+  flats: SubKesibukanFlat[]
   activeId: string | null
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: col.id })
 
   return (
     <div className="flex flex-col flex-1 min-w-[260px] max-w-sm">
-      {/* Column header */}
       <div className="flex items-center gap-2 mb-3 px-1">
         <span className={`w-2 h-2 rounded-full shrink-0 ${col.dot}`} />
         <span className="text-xs font-semibold text-text-primary">{col.label}</span>
         <span className="ml-auto px-1.5 py-0.5 text-[10px] bg-bg-secondary text-text-muted rounded-full font-medium leading-none">
-          {items.length}
+          {flats.length}
         </span>
       </div>
 
-      {/* Drop zone */}
       <div
         ref={setNodeRef}
         className={[
@@ -179,10 +244,14 @@ function DroppableColumn({
             : 'bg-bg-secondary/40 border-transparent',
         ].join(' ')}
       >
-        {items.map((k) => (
-          <DraggableCard key={k.id} kesibukan={k} isActive={activeId === k.id} />
+        {flats.map((flat) => (
+          <DraggableSubCard
+            key={flat.draggableId}
+            flat={flat}
+            isActive={activeId === flat.draggableId}
+          />
         ))}
-        {items.length === 0 && (
+        {flats.length === 0 && (
           <div className="flex items-center justify-center h-20 rounded-lg border border-dashed border-border">
             <span className="text-xs text-text-muted">
               {isOver ? 'Lepaskan di sini' : 'Kosong'}
@@ -196,18 +265,19 @@ function DroppableColumn({
 
 interface KanbanViewProps {
   items: Kesibukan[]
-  onSetStatus: (id: string, status: KesibukanStatus) => void
+  onSetSubComplete: (kId: string, subId: string, complete: boolean) => void
 }
 
-export function KanbanView({ items, onSetStatus }: KanbanViewProps) {
+export function KanbanView({ items, onSetSubComplete }: KanbanViewProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
+  const allFlats = flattenSubs(items)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
   )
 
-  const activeItem = activeId ? (items.find((k) => k.id === activeId) ?? null) : null
+  const activeFlat = activeId ? (allFlats.find((f) => f.draggableId === activeId) ?? null) : null
 
   const handleDragStart = ({ active }: DragStartEvent) => {
     setActiveId(String(active.id))
@@ -216,10 +286,14 @@ export function KanbanView({ items, onSetStatus }: KanbanViewProps) {
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     setActiveId(null)
     if (!over) return
-    const newStatus = over.id as KesibukanStatus
-    const item = items.find((k) => k.id === active.id)
-    if (item && item.status !== newStatus) {
-      onSetStatus(String(active.id), newStatus)
+    const targetCol = over.id as SubColId
+    const flat = allFlats.find((f) => f.draggableId === active.id)
+    if (!flat || flat.status === targetCol) return
+
+    if (targetCol === 'selesai') {
+      onSetSubComplete(flat.parentId, flat.sub.id, true)
+    } else if (flat.status === 'selesai') {
+      onSetSubComplete(flat.parentId, flat.sub.id, false)
     }
   }
 
@@ -237,14 +311,14 @@ export function KanbanView({ items, onSetStatus }: KanbanViewProps) {
           <DroppableColumn
             key={col.id}
             col={col}
-            items={items.filter((k) => k.status === col.id)}
+            flats={allFlats.filter((f) => f.status === col.id)}
             activeId={activeId}
           />
         ))}
       </div>
 
       <DragOverlay dropAnimation={{ duration: 150, easing: 'ease' }}>
-        {activeItem && <KanbanCardVisual kesibukan={activeItem} overlay />}
+        {activeFlat && <SubKanbanCardVisual flat={activeFlat} overlay />}
       </DragOverlay>
     </DndContext>
   )

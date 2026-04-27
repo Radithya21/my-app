@@ -36,6 +36,7 @@ interface KesibukanStore {
   updateStep: (kId: string, subId: string, stepId: string, updates: Partial<Omit<KesibukanStep, 'id' | 'order'>>) => Promise<void>
   deleteStep: (kId: string, subId: string, stepId: string) => Promise<void>
   toggleStep: (kId: string, subId: string, stepId: string) => Promise<void>
+  setSubComplete: (kId: string, subId: string, complete: boolean) => Promise<void>
 }
 
 const save = async (k: Kesibukan) => db.kesibukan.put(k)
@@ -196,6 +197,22 @@ export const useKesibukanStore = create<KesibukanStore>()((set, get) => ({
                 step.id === stepId ? { ...step, isCompleted: !step.isCompleted } : step
               ),
             }
+          : s
+      ),
+      updatedAt: new Date().toISOString(),
+    }
+    await save(updated)
+    set((s) => ({ items: s.items.map((k) => (k.id === kId ? updated : k)) }))
+  },
+
+  setSubComplete: async (kId, subId, complete) => {
+    const k = get().items.find((k) => k.id === kId)
+    if (!k) return
+    const updated = {
+      ...k,
+      subKesibukan: k.subKesibukan.map((s) =>
+        s.id === subId
+          ? { ...s, steps: s.steps.map((step) => ({ ...step, isCompleted: complete })) }
           : s
       ),
       updatedAt: new Date().toISOString(),

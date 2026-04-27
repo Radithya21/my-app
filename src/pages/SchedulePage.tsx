@@ -28,7 +28,7 @@ export default function SchedulePage() {
     items,
     add, update, remove, setStatus,
     addSub, updateSub, deleteSub,
-    addStep, updateStep, deleteStep, toggleStep,
+    addStep, updateStep, deleteStep, toggleStep, setSubComplete,
   } = useKesibukanStore()
 
   const [view, setView] = useState<ViewMode>('card')
@@ -65,6 +65,11 @@ export default function SchedulePage() {
       selesai: 'diselesaikan',
     }
     toast.success(`Kesibukan ${labels[status]}`)
+  }
+
+  const handleSetSubComplete = (kId: string, subId: string, complete: boolean) => {
+    setSubComplete(kId, subId, complete)
+    toast.success(complete ? 'Sub-kesibukan diselesaikan' : 'Sub-kesibukan dibuka kembali')
   }
 
   const isKanban = view === 'kanban'
@@ -180,7 +185,7 @@ export default function SchedulePage() {
 
       {/* Content */}
       {isKanban ? (
-        <KanbanView items={items} onSetStatus={handleSetStatus} />
+        <KanbanView items={items} onSetSubComplete={handleSetSubComplete} />
       ) : sorted.length === 0 ? (
         <EmptyState
           icon={<Layers size={40} />}
