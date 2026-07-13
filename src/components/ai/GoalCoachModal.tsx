@@ -58,10 +58,10 @@ export function GoalCoachModal({ isOpen, goal, onClose, onDone }: GoalCoachModal
 
     try {
       const today = toISODate(new Date())
-      const { geminiCoachModel } = useUIStore.getState()
+      const { groqCoachModel } = useUIStore.getState()
       const stream = await getClient().chat.completions.create(
         {
-          model: geminiCoachModel,
+          model: groqCoachModel,
           response_format: { type: 'json_object' },
           stream: true,
           messages: [
@@ -99,7 +99,7 @@ export function GoalCoachModal({ isOpen, goal, onClose, onDone }: GoalCoachModal
       }
     } catch (err) {
       if ((err as Error).name !== 'AbortError') {
-        console.error('[GoalCoachModal] Gemini error:', err)
+        console.error('[GoalCoachModal] Groq error:', err)
         toast.error(getAIErrorMessage(err, 'AI tidak berhasil membuat rencana.'))
         onClose()
       }

@@ -21,7 +21,7 @@ interface GoalProgressChatProps {
 }
 
 export function GoalProgressChat({ goal }: GoalProgressChatProps) {
-  const hasApiKey = !!useUIStore((s) => s.geminiApiKey)
+  const hasApiKey = !!useUIStore((s) => s.groqApiKey)
   const { messages, streamingContent, isStreaming, sendMessage, clearHistory } = useGoalChat(goal.id)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -42,7 +42,7 @@ export function GoalProgressChat({ goal }: GoalProgressChatProps) {
     try {
       await sendMessage(content, goal, goal.steps)
     } catch (err) {
-      console.error('[GoalProgressChat] Gemini error:', err)
+      console.error('[GoalProgressChat] Groq error:', err)
       toast.error(getAIErrorMessage(err, 'Gagal mengirim pesan.'))
     }
   }

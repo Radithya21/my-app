@@ -62,7 +62,7 @@ function totalItemCount(ctx: DigestContext): number {
 }
 
 export function DailyDigest({ context }: DailyDigestProps) {
-  const hasApiKey = !!useUIStore((s) => s.geminiApiKey)
+  const hasApiKey = !!useUIStore((s) => s.groqApiKey)
   const { setDigestUnread } = useAIStore()
   const [digestText, setDigestText] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -80,16 +80,16 @@ export function DailyDigest({ context }: DailyDigestProps) {
     isGeneratingRef.current = true
     setIsLoading(true)
     try {
-      const { geminiModel } = useUIStore.getState()
+      const { groqModel } = useUIStore.getState()
 
       const fallbackModel: AIModel | null =
-        geminiModel === 'gemini-2.0-flash-lite'
-          ? 'gemini-2.0-flash'
-          : geminiModel === 'gemini-2.0-flash'
-            ? 'gemini-2.0-flash-lite'
-            : null
+        groqModel === 'llama-3.3-70b-versatile'
+          ? 'llama-3.1-8b-instant'
+          : groqModel === 'llama-3.1-8b-instant'
+            ? 'llama-3.3-70b-versatile'
+            : 'llama-3.1-8b-instant'
 
-      const modelsToTry: AIModel[] = fallbackModel ? [geminiModel, fallbackModel] : [geminiModel]
+      const modelsToTry: AIModel[] = fallbackModel ? [groqModel, fallbackModel] : [groqModel]
 
       let generatedText: string | null = null
       let lastError: unknown = null
@@ -114,7 +114,7 @@ export function DailyDigest({ context }: DailyDigestProps) {
             max_tokens: 512,
           })
           generatedText = created.choices[0].message.content ?? ''
-          if (model !== geminiModel) {
+          if (model !== groqModel) {
             toast(`Ringkasan dibuat pakai model fallback (${model}).`, { id: 'digest-fallback' })
           }
           break
@@ -145,11 +145,11 @@ export function DailyDigest({ context }: DailyDigestProps) {
         setDigestText(localText)
         setIsStale(false)
         await cacheSet<DigestCache>(cacheKey, { text: localText, itemCount: currentItemCount }, 6 * 3600 * 1000)
-        toast('Gemini sedang limit/tidak tersedia. Menampilkan ringkasan lokal.', { id: 'digest-local-fallback' })
+        toast('Groq sedang limit/tidak tersedia. Menampilkan ringkasan lokal.', { id: 'digest-local-fallback' })
         return
       }
 
-      console.error('[DailyDigest] Gemini error:', err)
+      console.error('[DailyDigest] Groq error:', err)
       toast.error(
         getAIErrorMessage(err, 'Gagal membuat ringkasan hari ini.'),
         { id: 'digest-error' }
@@ -181,7 +181,7 @@ export function DailyDigest({ context }: DailyDigestProps) {
     const waitMs = rateLimitedUntilRef.current - Date.now()
     if (waitMs > 0) {
       const waitSec = Math.ceil(waitMs / 1000)
-      toast.error(`Masih kena limit Gemini. Coba lagi ${waitSec} detik lagi.`, { id: 'digest-rate-limit' })
+      toast.error(`Masih kena limit Groq. Coba lagi ${waitSec} detik lagi.`, { id: 'digest-rate-limit' })
       return
     }
     await cacheInvalidate(cacheKey)

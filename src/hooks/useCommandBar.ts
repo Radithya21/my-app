@@ -37,7 +37,7 @@ export function useCommandBar() {
   const [history, setHistory] = useState<CommandHistoryItem[]>(() => loadHistory())
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { closeCommandBar } = useAIStore()
-  const { geminiModel, getGeminiApiKey } = useUIStore.getState()
+  const { groqModel, getGroqApiKey } = useUIStore.getState()
 
   const handleSearch = useCallback((q: string) => {
     setQuery(q)
@@ -56,7 +56,7 @@ export function useCommandBar() {
       }
 
       // Slow path: API
-      const apiKey = getGeminiApiKey()
+      const apiKey = getGroqApiKey()
       if (!apiKey) {
         setResult({ intent: 'unknown', confidence: 'low' })
         return
@@ -66,7 +66,7 @@ export function useCommandBar() {
       try {
         const today = toISODate(new Date())
         const response = await getClient().chat.completions.create({
-          model: geminiModel,
+          model: groqModel,
           response_format: { type: 'json_object' },
           messages: [
             { role: 'system', content: SYSTEM_COMMAND_PARSER.replace('{DATE}', today) },
@@ -78,14 +78,14 @@ export function useCommandBar() {
         const parsed: CommandResult = JSON.parse(text)
         setResult(parsed)
       } catch (err) {
-        console.error('[CommandBar] Gemini error:', err)
+        console.error('[CommandBar] Groq error:', err)
         toast.error(getAIErrorMessage(err, 'Gagal memproses perintah.'))
         setResult(null)
       } finally {
         setIsLoading(false)
       }
     }, 400)
-  }, [geminiModel, getGeminiApiKey])
+  }, [groqModel, getGroqApiKey])
 
   const handleExecute = useCallback((res: CommandResult) => {
     const historyItem: CommandHistoryItem = {

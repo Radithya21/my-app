@@ -72,6 +72,7 @@ export interface TodoItem {
   description?: string
   priority: 'low' | 'medium' | 'high' | 'urgent'
   category?: string
+  kesibukanId?: string
   dueDate?: string
   dueTime?: string
   isCompleted: boolean
@@ -91,7 +92,12 @@ export type GoalCategory = Goal['category']
 export type GoalStatus = Goal['status']
 export type Priority = 'low' | 'medium' | 'high'
 export type TodoPriority = TodoItem['priority']
-export type AIModel = 'gemini-2.0-flash-lite' | 'gemini-2.0-flash' | 'gemini-1.5-flash'
+export type AIModel =
+  | 'llama-3.3-70b-versatile'
+  | 'llama-3.1-8b-instant'
+  | 'llama3-8b-8192'
+  | 'mixtral-8x7b-32768'
+  | 'gemma2-9b-it'
 
 export interface CommandResult {
   intent: 'create_todo' | 'create_goal' | 'create_debt' | 'create_activity' | 'query' | 'unknown'
@@ -141,8 +147,22 @@ export interface DigestContext {
   activeGoals: Goal[]
 }
 
-// Kesibukan v2.0 — Hierarchical Activity Management
+// Kesibukan v3.0 — Simple Category Labels
 
+export type KesibukanStatus = 'aktif' | 'ditunda' | 'selesai'
+
+export interface Kesibukan {
+  id: string
+  name: string
+  description?: string
+  status: KesibukanStatus
+  colorLabel: string
+  icon?: string
+  createdAt: string
+  updatedAt: string
+}
+
+// Legacy types kept for migration safety
 export interface KesibukanStep {
   id: string
   name: string
@@ -158,18 +178,4 @@ export interface SubKesibukan {
   deadline?: string
   steps: KesibukanStep[]
   order: number
-}
-
-export type KesibukanStatus = 'aktif' | 'ditunda' | 'selesai'
-
-export interface Kesibukan {
-  id: string
-  name: string
-  description?: string
-  deadline?: string
-  status: KesibukanStatus
-  colorLabel: string
-  subKesibukan: SubKesibukan[]
-  createdAt: string
-  updatedAt: string
 }

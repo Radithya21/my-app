@@ -9,6 +9,10 @@ import { useScheduleStore } from './store/useScheduleStore'
 import { useGoalStore } from './store/useGoalStore'
 import { useTodoStore } from './store/useTodoStore'
 import { useKesibukanStore } from './store/useKesibukanStore'
+import { registerSW } from 'virtual:pwa-register'
+
+// Register PWA service worker — auto-update when new version available
+registerSW({ immediate: true })
 
 async function bootstrap() {
   await runMigrationIfNeeded()

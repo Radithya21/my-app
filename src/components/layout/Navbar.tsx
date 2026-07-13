@@ -34,7 +34,7 @@ const themeLabel: Record<Theme, string> = {
 export function Navbar() {
   const location = useLocation()
   const { theme, setTheme } = useUIStore()
-  const hasApiKey = !!useUIStore((s) => s.geminiApiKey)
+  const hasApiKey = !!useUIStore((s) => s.groqApiKey)
   const { openCommandBar, digestUnread } = useAIStore()
   const pageName = routeNames[location.pathname] ?? 'PersonalOS'
 

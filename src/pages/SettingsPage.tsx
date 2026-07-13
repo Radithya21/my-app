@@ -23,11 +23,11 @@ const themeOptions: { value: Theme; label: string; icon: React.ReactNode }[] = [
 export default function SettingsPage() {
   const {
     theme, setTheme,
-    geminiModel, geminiCoachModel,
-    setGeminiApiKey, setGeminiModel, setGeminiCoachModel,
+    groqModel, groqCoachModel,
+    setGroqApiKey, setGroqModel, setGroqCoachModel,
     aiWritingAssistEnabled, setAIWritingAssistEnabled,
   } = useUIStore()
-  const hasApiKey = !!useUIStore((s) => s.geminiApiKey)
+  const hasApiKey = !!useUIStore((s) => s.groqApiKey)
   const debtItems = useDebtStore((s) => s.items)
   const activities = useScheduleStore((s) => s.activities)
   const goals = useGoalStore((s) => s.goals)
@@ -72,14 +72,14 @@ export default function SettingsPage() {
       toast.error('API key tidak boleh kosong')
       return
     }
-    setGeminiApiKey(apiKeyInput.trim())
+    setGroqApiKey(apiKeyInput.trim())
     resetClient()
     setApiKeyInput('')
     toast.success('API key tersimpan')
   }
 
   const handleClearApiKey = () => {
-    setGeminiApiKey('')
+    setGroqApiKey('')
     resetClient()
     setApiKeyInput('')
     toast.success('API key dihapus')
@@ -154,13 +154,13 @@ export default function SettingsPage() {
           )}
         </div>
         <p className="text-xs text-text-muted">
-          Gunakan Google Gemini API untuk Command Bar, Daily Digest, dan Smart Goal Coach.
-          API key disimpan di browser ini saja, lalu dipakai untuk request ke endpoint aplikasi kamu yang meneruskan ke Google.
+          Gunakan <strong>Groq API</strong> (gratis & cepat) untuk Command Bar, Daily Digest, dan Smart Goal Coach.
+          API key disimpan di browser ini saja.
         </p>
 
         <div className="space-y-2">
           <label className="text-xs font-medium text-text-primary">
-            {hasApiKey ? 'Ganti API Key' : 'Gemini API Key (Google AI Studio)'}
+            {hasApiKey ? 'Ganti API Key' : 'Groq API Key (console.groq.com)'}
           </label>
           {hasApiKey && (
             <p className="text-xs text-text-muted">API key sudah tersimpan. Isi field di bawah untuk mengganti.</p>
@@ -171,7 +171,7 @@ export default function SettingsPage() {
                 type={showApiKey ? 'text' : 'password'}
                 value={apiKeyInput}
                 onChange={(e) => setApiKeyInput(e.target.value)}
-                placeholder={hasApiKey ? 'AIza•••••••• (kosongkan jika tidak ingin mengubah)' : 'AIza...'}
+                placeholder={hasApiKey ? 'gsk_•••••••• (kosongkan jika tidak ingin mengubah)' : 'gsk_...'}
                 className="w-full h-9 px-3 pr-9 rounded-lg border border-border bg-bg-primary text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors"
                 onKeyDown={(e) => e.key === 'Enter' && handleSaveApiKey()}
               />
@@ -198,23 +198,27 @@ export default function SettingsPage() {
         <div className="grid grid-cols-2 gap-3">
           <Select
             label="Model Command Bar & Digest"
-            value={geminiModel}
-            onChange={(e) => setGeminiModel(e.target.value as AIModel)}
+            value={groqModel}
+            onChange={(e) => setGroqModel(e.target.value as AIModel)}
             disabled={!hasApiKey}
           >
-            <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite (cepat)</option>
-            <option value="gemini-2.0-flash">gemini-2.0-flash (lebih cerdas)</option>
-            <option value="gemini-1.5-flash">gemini-1.5-flash (lebih kompatibel)</option>
+            <option value="llama-3.3-70b-versatile">llama-3.3-70b (terkuat, default)</option>
+            <option value="llama-3.1-8b-instant">llama-3.1-8b (lebih cepat)</option>
+            <option value="llama3-8b-8192">llama3-8b (ringan)</option>
+            <option value="mixtral-8x7b-32768">mixtral-8x7b (konteks panjang)</option>
+            <option value="gemma2-9b-it">gemma2-9b (Google)</option>
           </Select>
           <Select
             label="Model Goal Coach"
-            value={geminiCoachModel}
-            onChange={(e) => setGeminiCoachModel(e.target.value as AIModel)}
+            value={groqCoachModel}
+            onChange={(e) => setGroqCoachModel(e.target.value as AIModel)}
             disabled={!hasApiKey}
           >
-            <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite (cepat)</option>
-            <option value="gemini-2.0-flash">gemini-2.0-flash (lebih cerdas)</option>
-            <option value="gemini-1.5-flash">gemini-1.5-flash (lebih kompatibel)</option>
+            <option value="llama-3.3-70b-versatile">llama-3.3-70b (terkuat, default)</option>
+            <option value="llama-3.1-8b-instant">llama-3.1-8b (lebih cepat)</option>
+            <option value="llama3-8b-8192">llama3-8b (ringan)</option>
+            <option value="mixtral-8x7b-32768">mixtral-8x7b (konteks panjang)</option>
+            <option value="gemma2-9b-it">gemma2-9b (Google)</option>
           </Select>
         </div>
 
@@ -240,12 +244,12 @@ export default function SettingsPage() {
         <p className="text-xs text-text-muted">
           Belum punya API key?{' '}
           <a
-            href="https://aistudio.google.com/apikey"
+            href="https://console.groq.com/keys"
             target="_blank"
             rel="noopener noreferrer"
             className="text-accent hover:underline"
           >
-            Dapatkan gratis di Google AI Studio →
+            Dapatkan gratis di Groq Console →
           </a>
         </p>
       </section>

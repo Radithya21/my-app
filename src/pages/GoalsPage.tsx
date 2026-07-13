@@ -60,7 +60,7 @@ export default function GoalsPage() {
     addGoal({ ...data, status: 'not_started' })
     toast.success('Tujuan ditambahkan')
     setShowForm(false)
-    const apiKey = useUIStore.getState().getGeminiApiKey()
+    const apiKey = useUIStore.getState().getGroqApiKey()
     if (apiKey) {
       const latestGoal = useGoalStore.getState().goals.at(-1)
       if (latestGoal) {

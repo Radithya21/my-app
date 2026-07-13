@@ -28,3 +28,15 @@ db.version(1).stores({
 db.version(2).stores({
   kesibukan: 'id, status, deadline, createdAt',
 })
+
+// v3: Kesibukan simplified to category labels; todos gain kesibukanId
+db.version(3).stores({
+  kesibukan: 'id, status, createdAt',
+  todos: 'id, priority, isCompleted, dueDate, isPinned, kesibukanId, createdAt',
+}).upgrade(async (tx) => {
+  // Migrate old Kesibukan: remove subKesibukan field
+  await tx.table('kesibukan').toCollection().modify((item: Record<string, unknown>) => {
+    delete item['subKesibukan']
+    delete item['deadline']
+  })
+})

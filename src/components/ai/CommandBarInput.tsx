@@ -8,7 +8,7 @@ interface CommandBarInputProps {
 }
 
 export function CommandBarInput({ isLoading }: CommandBarInputProps) {
-  const hasApiKey = !!useUIStore((s) => s.geminiApiKey)
+  const hasApiKey = !!useUIStore((s) => s.groqApiKey)
 
   return (
     <div className="flex flex-col border-b border-border">
@@ -30,7 +30,7 @@ export function CommandBarInput({ isLoading }: CommandBarInputProps) {
           <p className="text-xs text-text-muted">
             ✦ Tambahkan{' '}
             <Link to="/settings" className="text-accent hover:underline">
-              Gemini API key
+              Groq API key
             </Link>{' '}
             untuk perintah AI. Kamu tetap bisa navigasi manual di bawah.
           </p>

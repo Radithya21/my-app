@@ -1,15 +1,18 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { addDays, startOfDay, endOfWeek, isAfter } from 'date-fns'
 import { AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
-import { CheckSquare, Trash2 } from 'lucide-react'
+import { CheckSquare, Trash2, GitBranch, List } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
 import { QuickAdd } from '../components/todo/QuickAdd'
 import { TodoItemComponent } from '../components/todo/TodoItemComponent'
 import { TodoForm } from '../components/todo/TodoForm'
+import { MindMapView } from '../components/todo/MindMapView'
 import { Modal } from '../components/ui/Modal'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
 import { useTodoStore } from '../store/useTodoStore'
+import { useKesibukanStore } from '../store/useKesibukanStore'
 import { useLocalDate } from '../hooks/useLocalDate'
 import type { TodoItem, TodoGroup } from '../types'
 import { toISODate } from '../utils/formatDate'
@@ -67,12 +70,26 @@ function groupTodos(items: TodoItem[], now: Date): Record<TodoGroup, TodoItem[]>
   return groups
 }
 
+type ViewMode = 'list' | 'mindmap'
+
 export default function TodoPage() {
   const { items, addItem, updateItem, deleteItem, toggleComplete, togglePin, clearCompleted, markTodayAsDone } = useTodoStore()
+  const kesibukanItems = useKesibukanStore((s) => s.items.filter((k) => k.status === 'aktif'))
   const now = useLocalDate()
+  const [searchParams] = useSearchParams()
+
   const [filter, setFilter] = useState<FilterType>('all')
+  const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [showForm, setShowForm] = useState(false)
   const [editItem, setEditItem] = useState<TodoItem | null>(null)
+
+  // Pre-select kesibukan filter from URL param (coming from SchedulePage click)
+  const urlKesibukanId = searchParams.get('kesibukan')
+  useEffect(() => {
+    if (urlKesibukanId) {
+      setFilter(urlKesibukanId)
+    }
+  }, [urlKesibukanId])
 
   const today = toISODate(now)
 
@@ -80,8 +97,12 @@ export default function TodoPage() {
     if (filter === 'all') return items
     if (filter === 'today') return items.filter((i) => !i.isCompleted && i.dueDate === today)
     if (filter === 'urgent') return items.filter((i) => !i.isCompleted && i.priority === 'urgent')
+    // Kesibukan filter
+    const k = kesibukanItems.find((k) => k.id === filter)
+    if (k) return items.filter((i) => i.kesibukanId === filter)
+    // Category tag filter
     return items.filter((i) => i.category === filter)
-  }, [items, filter, today])
+  }, [items, filter, today, kesibukanItems])
 
   const grouped = useMemo(() => groupTodos(filteredItems, now), [filteredItems, now])
 
@@ -89,7 +110,8 @@ export default function TodoPage() {
   const completedCount = items.filter((i) => i.isCompleted).length
 
   const handleQuickAdd = (title: string, dueDate: string) => {
-    addItem({ title, priority: 'medium', dueDate })
+    const kId = kesibukanItems.find((k) => k.id === filter)?.id
+    addItem({ title, priority: 'medium', dueDate, kesibukanId: kId })
     toast.success('Tugas ditambahkan')
   }
 
@@ -118,6 +140,8 @@ export default function TodoPage() {
   const orderGroups: TodoGroup[] = ['today', 'tomorrow', 'this_week', 'later', 'done']
   const pendingCount = items.filter((i) => !i.isCompleted).length
 
+  const activeFilter = kesibukanItems.find((k) => k.id === filter)
+
   return (
     <div className="max-w-2xl mx-auto space-y-4">
       <div className="flex items-center justify-between">
@@ -127,7 +151,31 @@ export default function TodoPage() {
             <span className="ml-2 text-sm font-normal text-text-muted">{pendingCount} pending</span>
           )}
         </h1>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {/* View toggle */}
+          <div className="flex gap-0.5 p-1 bg-bg-secondary rounded-lg">
+            <button
+              onClick={() => setViewMode('list')}
+              title="List view"
+              className={[
+                'p-1.5 rounded-md transition-colors',
+                viewMode === 'list' ? 'bg-bg-card shadow-sm text-text-primary' : 'text-text-muted hover:text-text-secondary',
+              ].join(' ')}
+            >
+              <List size={14} />
+            </button>
+            <button
+              onClick={() => setViewMode('mindmap')}
+              title="Mind Map view"
+              className={[
+                'p-1.5 rounded-md transition-colors',
+                viewMode === 'mindmap' ? 'bg-bg-card shadow-sm text-text-primary' : 'text-text-muted hover:text-text-secondary',
+              ].join(' ')}
+            >
+              <GitBranch size={14} />
+            </button>
+          </div>
+
           {completedCount > 0 && (
             <Button
               size="sm"
@@ -143,6 +191,7 @@ export default function TodoPage() {
 
       <QuickAdd onAdd={handleQuickAdd} onOpenFull={() => setShowForm(true)} />
 
+      {/* Filter chips */}
       <div className="flex gap-1 flex-wrap">
         {(['all', 'today', 'urgent'] as FilterType[]).map((f) => (
           <button
@@ -156,6 +205,32 @@ export default function TodoPage() {
             {f === 'all' ? 'Semua' : f === 'today' ? 'Hari Ini' : 'Mendesak'}
           </button>
         ))}
+
+        {/* Separator */}
+        {kesibukanItems.length > 0 && (
+          <div className="w-px h-6 bg-border self-center mx-1" />
+        )}
+
+        {/* Kesibukan chips */}
+        {kesibukanItems.map((k) => (
+          <button
+            key={k.id}
+            onClick={() => setFilter(filter === k.id ? 'all' : k.id)}
+            className={[
+              'px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5',
+              filter === k.id ? 'text-white shadow-sm' : 'bg-bg-secondary text-text-secondary hover:bg-border',
+            ].join(' ')}
+            style={filter === k.id ? { backgroundColor: k.colorLabel } : {}}
+          >
+            <span
+              className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+              style={{ backgroundColor: filter === k.id ? 'rgba(255,255,255,0.8)' : k.colorLabel }}
+            />
+            {k.name}
+          </button>
+        ))}
+
+        {/* Category tags */}
         {categories.map((cat) => (
           <button
             key={cat}
@@ -170,6 +245,23 @@ export default function TodoPage() {
         ))}
       </div>
 
+      {/* Active kesibukan banner */}
+      {activeFilter && (
+        <div
+          className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium"
+          style={{ backgroundColor: activeFilter.colorLabel + '15', color: activeFilter.colorLabel }}
+        >
+          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: activeFilter.colorLabel }} />
+          Menampilkan to-do dari kesibukan: <strong>{activeFilter.name}</strong>
+          <button
+            className="ml-auto text-[10px] underline opacity-70 hover:opacity-100"
+            onClick={() => setFilter('all')}
+          >
+            Hapus filter
+          </button>
+        </div>
+      )}
+
       {filter === 'today' && items.filter((i) => !i.isCompleted && i.dueDate === today).length > 0 && (
         <Button size="sm" variant="secondary" onClick={() => { markTodayAsDone(); toast.success('Semua tugas hari ini selesai!') }}>
           <CheckSquare size={12} />
@@ -177,7 +269,20 @@ export default function TodoPage() {
         </Button>
       )}
 
-      {filteredItems.length === 0 ? (
+      {/* Content */}
+      {viewMode === 'mindmap' ? (
+        <div className="bg-bg-card border border-border rounded-xl overflow-hidden" style={{ minHeight: 520 }}>
+          <MindMapView
+            todos={activeFilter
+              ? items.filter((t) => !t.isCompleted && t.kesibukanId === activeFilter.id)
+              : items.filter((t) => !t.isCompleted)
+            }
+            kesibukan={activeFilter ? [activeFilter] : kesibukanItems}
+            onToggle={handleToggle}
+            onEdit={setEditItem}
+          />
+        </div>
+      ) : filteredItems.length === 0 ? (
         <EmptyState
           icon={<CheckSquare size={40} />}
           title="Inbox kosong"
@@ -215,7 +320,11 @@ export default function TodoPage() {
       )}
 
       <Modal isOpen={showForm} onClose={() => setShowForm(false)} title="Tambah Tugas">
-        <TodoForm onSubmit={handleAdd} onCancel={() => setShowForm(false)} />
+        <TodoForm
+          onSubmit={handleAdd}
+          onCancel={() => setShowForm(false)}
+          defaultKesibukanId={activeFilter?.id}
+        />
       </Modal>
 
       <Modal isOpen={!!editItem} onClose={() => setEditItem(null)} title="Edit Tugas">

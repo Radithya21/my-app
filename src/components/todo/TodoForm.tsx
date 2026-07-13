@@ -3,6 +3,7 @@ import toast from 'react-hot-toast'
 import { Input, Textarea, Select } from '../ui/Input'
 import { Button } from '../ui/Button'
 import { AIAssistButton } from '../ui/AIAssistButton'
+import { useKesibukanStore } from '../../store/useKesibukanStore'
 import type { TodoItem, TodoPriority } from '../../types'
 
 type TodoFormData = Omit<TodoItem, 'id' | 'isCompleted' | 'completedAt' | 'createdAt' | 'updatedAt'>
@@ -11,14 +12,19 @@ interface TodoFormProps {
   initialData?: Partial<TodoItem>
   onSubmit: (data: TodoFormData) => void
   onCancel: () => void
+  /** Pre-select a kesibukan when opening form from a filtered view */
+  defaultKesibukanId?: string
 }
 
-export function TodoForm({ initialData, onSubmit, onCancel }: TodoFormProps) {
+export function TodoForm({ initialData, onSubmit, onCancel, defaultKesibukanId }: TodoFormProps) {
+  const kesibukanItems = useKesibukanStore((s) => s.items.filter((k) => k.status === 'aktif'))
+
   const [form, setForm] = useState({
     title: initialData?.title ?? '',
     description: initialData?.description ?? '',
     priority: initialData?.priority ?? 'medium' as TodoPriority,
     category: initialData?.category ?? '',
+    kesibukanId: initialData?.kesibukanId ?? defaultKesibukanId ?? '',
     dueDate: initialData?.dueDate ?? '',
     dueTime: initialData?.dueTime ?? '',
     isPinned: initialData?.isPinned ?? false,
@@ -53,6 +59,7 @@ export function TodoForm({ initialData, onSubmit, onCancel }: TodoFormProps) {
       description: form.description.trim() || undefined,
       priority: form.priority,
       category: form.category.trim() || undefined,
+      kesibukanId: form.kesibukanId || undefined,
       dueDate: form.dueDate || undefined,
       dueTime: form.dueTime || undefined,
       isPinned: form.isPinned,
@@ -84,6 +91,18 @@ export function TodoForm({ initialData, onSubmit, onCancel }: TodoFormProps) {
         value={form.description}
         onChange={(e) => setForm({ ...form, description: e.target.value })}
       />
+
+      {/* Kesibukan linkage */}
+      <Select
+        label="Kesibukan (opsional)"
+        value={form.kesibukanId}
+        onChange={(e) => setForm({ ...form, kesibukanId: e.target.value })}
+      >
+        <option value="">— Tidak dikaitkan —</option>
+        {kesibukanItems.map((k) => (
+          <option key={k.id} value={k.id}>{k.name}</option>
+        ))}
+      </Select>
 
       <div className="grid grid-cols-2 gap-3">
         <Select

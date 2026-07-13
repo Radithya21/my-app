@@ -6,7 +6,7 @@ import { useUIStore } from '../../store/useUIStore'
 const DISMISSED_KEY = 'personal-os-ai-onboard-dismissed'
 
 export function AIOnboardingBanner() {
-  const hasApiKey = !!useUIStore((s) => s.geminiApiKey)
+  const hasApiKey = !!useUIStore((s) => s.groqApiKey)
   const [dismissed, setDismissed] = useState(
     () => localStorage.getItem(DISMISSED_KEY) === '1'
   )
@@ -21,7 +21,7 @@ export function AIOnboardingBanner() {
           <p className="text-sm font-medium text-text-primary">Aktifkan Fitur AI</p>
         </div>
         <p className="text-xs text-text-muted">
-          Set API key Google Gemini di Pengaturan untuk menggunakan Command Bar (⌘K), Daily Digest, dan Smart Goal Coach.
+          Set <strong>Groq API key</strong> di Pengaturan untuk menggunakan Command Bar (⌘K), Daily Digest, dan Smart Goal Coach. Gratis & cepat!
         </p>
         <Link
           to="/settings"

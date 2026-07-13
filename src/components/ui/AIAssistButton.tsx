@@ -22,10 +22,10 @@ export function AIAssistButton({ formType, titleValue, onResult, disabled }: AIA
     if (!titleValue.trim() || loading) return
     setLoading(true)
     try {
-      const { geminiModel } = useUIStore.getState()
+      const { groqModel } = useUIStore.getState()
       const client = getClient()
       const response = await client.chat.completions.create({
-        model: geminiModel,
+        model: groqModel,
         messages: [
           { role: 'system', content: WRITING_ASSIST_PROMPTS[formType] },
           { role: 'user', content: `Title: ${titleValue}` },
@@ -36,7 +36,7 @@ export function AIAssistButton({ formType, titleValue, onResult, disabled }: AIA
       const parsed = JSON.parse(raw)
       onResult(parsed)
     } catch (err) {
-      console.error('[AIAssistButton] Gemini error:', err)
+      console.error('[AIAssistButton] Groq error:', err)
       toast.error(getAIErrorMessage(err, 'AI tidak bisa membantu saat ini.'))
     } finally {
       setLoading(false)

@@ -34,14 +34,14 @@ export function useGoalChat(goalId: string) {
       content: m.content,
     }))
 
-    const { geminiCoachModel } = useUIStore.getState()
+    const { groqCoachModel } = useUIStore.getState()
 
     setIsStreaming(true)
     setStreamingContent('')
 
     try {
       const stream = await getClient().chat.completions.create({
-        model: geminiCoachModel,
+        model: groqCoachModel,
         stream: true,
         messages: [
           { role: 'system', content: buildGoalChatSystemPrompt(goal, steps) },
