@@ -1,4 +1,5 @@
-export function formatCurrency(amount: number): string {
+export function formatCurrency(amount: number | null | undefined): string {
+  if (amount == null || isNaN(amount)) return 'Rp —'
   return 'Rp ' + amount.toLocaleString('id-ID', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,

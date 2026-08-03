@@ -27,6 +27,8 @@ export const useDebtStore = create<DebtStore>()((set, get) => ({
       const paidAmount = Math.max(0, Math.min(i.paidAmount ?? 0, i.amount))
       return {
         ...i,
+        // Migrate old records that don't have the date field
+        date: i.date || i.createdAt?.slice(0, 10) || new Date().toISOString().slice(0, 10),
         paidAmount,
         payments: i.payments ?? [],
         isPaid: paidAmount >= i.amount,

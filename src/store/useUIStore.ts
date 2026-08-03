@@ -65,6 +65,22 @@ export const useUIStore = create<UIStore>()(
       setGeminiModel: (model) => get().setGroqModel(model),
       setGeminiCoachModel: (model) => get().setGroqCoachModel(model),
     }),
-    { name: 'personal-os-ui' }
+    {
+      name: 'personal-os-ui',
+      version: 1,
+      migrate: (persisted: unknown, version: number) => {
+        const state = persisted as Partial<UIStore>
+        if (version < 1) {
+          const deprecatedModels = new Set(['llama3-8b-8192', 'mixtral-8x7b-32768', 'gemma2-9b-it'])
+          if (state.groqModel && deprecatedModels.has(state.groqModel as string)) {
+            state.groqModel = 'llama-3.3-70b-versatile'
+          }
+          if (state.groqCoachModel && deprecatedModels.has(state.groqCoachModel as string)) {
+            state.groqCoachModel = 'llama-3.3-70b-versatile'
+          }
+        }
+        return state
+      },
+    }
   )
 )

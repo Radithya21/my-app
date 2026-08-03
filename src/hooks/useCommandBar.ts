@@ -8,6 +8,7 @@ import { SYSTEM_COMMAND_PARSER } from '../ai/prompts'
 import { useUIStore } from '../store/useUIStore'
 import { useAIStore } from '../store/useAIStore'
 import { useTodoStore } from '../store/useTodoStore'
+import { useDebtStore } from '../store/useDebtStore'
 import { generateId } from '../utils/generateId'
 import { toISODate } from '../utils/formatDate'
 
@@ -127,9 +128,22 @@ export function useCommandBar() {
     }
 
     if (res.intent === 'create_debt' && res.parsedData) {
-      sessionStorage.setItem('prefill-debt', JSON.stringify(res.parsedData))
+      const { personName, amount, type, description, dueDate } = res.parsedData
+      if (personName && amount) {
+        useDebtStore.getState().addItem({
+          personName,
+          amount,
+          type: type ?? 'owe',
+          description: description ?? '',
+          date: toISODate(new Date()),
+          dueDate,
+          isPaid: false,
+          paidAmount: 0,
+          payments: [],
+        })
+        toast.success(`Hutang ke ${personName} (${amount.toLocaleString('id-ID')}) berhasil dicatat`)
+      }
       closeCommandBar()
-      navigate('/debt')
       return
     }
 

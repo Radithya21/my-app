@@ -204,9 +204,8 @@ export default function SettingsPage() {
           >
             <option value="llama-3.3-70b-versatile">llama-3.3-70b (terkuat, default)</option>
             <option value="llama-3.1-8b-instant">llama-3.1-8b (lebih cepat)</option>
-            <option value="llama3-8b-8192">llama3-8b (ringan)</option>
-            <option value="mixtral-8x7b-32768">mixtral-8x7b (konteks panjang)</option>
-            <option value="gemma2-9b-it">gemma2-9b (Google)</option>
+            <option value="meta-llama/llama-4-maverick-17b-128e-instruct">llama-4-maverick (multimodal)</option>
+            <option value="compound-beta-mini">Groq Compound Mini (dengan tools)</option>
           </Select>
           <Select
             label="Model Goal Coach"
@@ -216,9 +215,8 @@ export default function SettingsPage() {
           >
             <option value="llama-3.3-70b-versatile">llama-3.3-70b (terkuat, default)</option>
             <option value="llama-3.1-8b-instant">llama-3.1-8b (lebih cepat)</option>
-            <option value="llama3-8b-8192">llama3-8b (ringan)</option>
-            <option value="mixtral-8x7b-32768">mixtral-8x7b (konteks panjang)</option>
-            <option value="gemma2-9b-it">gemma2-9b (Google)</option>
+            <option value="meta-llama/llama-4-maverick-17b-128e-instruct">llama-4-maverick (multimodal)</option>
+            <option value="compound-beta-mini">Groq Compound Mini (dengan tools)</option>
           </Select>
         </div>
 

@@ -1,6 +1,20 @@
 {
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache" },
+        { "key": "Service-Worker-Allowed", "value": "/" }
+      ]
+    },
+    {
+      "source": "/workbox-(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache" }
+      ]
+    }
+  ],
   "rewrites": [
-    { "source": "/api/gemini/(.*)", "destination": "https://generativelanguage.googleapis.com/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

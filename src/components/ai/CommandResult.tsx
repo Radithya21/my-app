@@ -83,7 +83,7 @@ export function CommandResult({ result, onExecute, onDismiss }: CommandResultPro
             <span className="text-text-primary">{parsedData.personName}</span>
           </div>
         )}
-        {parsedData.amount !== undefined && (
+        {parsedData.amount != null && (
           <div className="flex gap-2">
             <span className="text-text-muted w-20 shrink-0">Jumlah</span>
             <span className="text-text-primary">{formatCurrency(parsedData.amount)}</span>

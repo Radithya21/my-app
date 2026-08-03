@@ -85,11 +85,11 @@ export function DailyDigest({ context }: DailyDigestProps) {
       const fallbackModel: AIModel | null =
         groqModel === 'llama-3.3-70b-versatile'
           ? 'llama-3.1-8b-instant'
-          : groqModel === 'llama-3.1-8b-instant'
-            ? 'llama-3.3-70b-versatile'
-            : 'llama-3.1-8b-instant'
+          : 'llama-3.3-70b-versatile'
 
-      const modelsToTry: AIModel[] = fallbackModel ? [groqModel, fallbackModel] : [groqModel]
+      const modelsToTry: AIModel[] = [groqModel, fallbackModel].filter(
+        (m, i, arr) => m && arr.indexOf(m) === i
+      ) as AIModel[]
 
       let generatedText: string | null = null
       let lastError: unknown = null

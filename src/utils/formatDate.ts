@@ -2,15 +2,24 @@ import { format, formatDistanceToNow, differenceInDays, isToday, isTomorrow, isT
 import { id } from 'date-fns/locale'
 
 export function formatDate(iso: string): string {
-  return format(new Date(iso), 'EEEE, dd MMM yyyy', { locale: id })
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return '—'
+  return format(d, 'EEEE, dd MMM yyyy', { locale: id })
 }
 
 export function formatDateShort(iso: string): string {
-  return format(new Date(iso), 'dd MMM yyyy', { locale: id })
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return '—'
+  return format(d, 'dd MMM yyyy', { locale: id })
 }
 
 export function formatDateMini(iso: string): string {
-  return format(new Date(iso), 'dd MMM', { locale: id })
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return '—'
+  return format(d, 'dd MMM', { locale: id })
 }
 
 export function formatTime(time: string): string {
@@ -18,11 +27,17 @@ export function formatTime(time: string): string {
 }
 
 export function formatRelative(iso: string): string {
-  return formatDistanceToNow(new Date(iso), { addSuffix: true, locale: id })
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return '—'
+  return formatDistanceToNow(d, { addSuffix: true, locale: id })
 }
 
 export function daysUntil(iso: string): number {
-  return differenceInDays(startOfDay(new Date(iso)), startOfDay(new Date()))
+  if (!iso) return Infinity
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return Infinity
+  return differenceInDays(startOfDay(d), startOfDay(new Date()))
 }
 
 export function isDateToday(iso: string): boolean {

@@ -2,14 +2,19 @@ import type { CommandResult } from '../types'
 import { toISODate } from '../utils/formatDate'
 
 function parseCurrencyText(text: string): number | null {
-  const clean = text.replace(/[.,\s]/g, '').toLowerCase()
-  const match = clean.match(/^(\d+(?:[.,]\d+)?)(jt|juta|rb|ribu|k)?$/)
+  // Normalize: remove spaces, convert dot-separated thousands (165.000 → 165000)
+  const clean = text
+    .replace(/\s/g, '')
+    .replace(/\.(\d{3})(?=[.,]|$)/g, '$1') // remove thousands separator dots
+    .replace(',', '.')                       // normalize decimal comma
+    .toLowerCase()
+  // suffix: jt/juta = juta, rb/ribu/k/K = ribu
+  const match = clean.match(/^(\d+(?:\.\d+)?)(jt|juta|rb|ribu|k)?$/)
   if (!match) return null
-  const num = parseFloat(match[1].replace(',', '.'))
+  const num = parseFloat(match[1])
   const suffix = match[2]
   if (suffix === 'jt' || suffix === 'juta') return num * 1_000_000
-  if (suffix === 'rb' || suffix === 'ribu') return num * 1_000
-  if (suffix === 'k') return num * 1_000
+  if (suffix === 'rb' || suffix === 'ribu' || suffix === 'k') return num * 1_000
   return num
 }
 
@@ -61,27 +66,32 @@ export function parseCommandLocally(input: string): CommandResult | null {
     return { intent: 'create_goal', parsedData: { title }, confidence: 'high' }
   }
 
-  // create_debt (owe): "hutang ke <nama> <amount>"
-  const debtOweMatch = lower.match(/^(?:hutang|pinjam ke|catat hutang)\s+(?:ke\s+)?([a-zA-Z]+)\s+([\d.,]+(?:rb|ribu|jt|juta|k)?)/i)
+  // create_debt (owe): berbagai cara menyatakan hutang
+  // e.g. "hutang ke trilen 165.000", "buatkan hutang saya ke trilen 165000", "saya hutang ke budi 50rb"
+  const debtOweMatch = lower.match(
+    /^(?:buatkan\s+)?(?:catat\s+)?(?:saya\s+|aku\s+)?(?:hutang|pinjam)(?:\s+saya)?(?:\s+ke)?\s+([a-zA-Z][a-zA-Z\s]*)\s+([\d.,]+(?:rb|ribu|jt|juta|k)?)/i
+  )
   if (debtOweMatch) {
-    const amount = parseCurrencyText(debtOweMatch[2])
-    if (amount) {
+    const personName = debtOweMatch[1].trim()
+    const amount = parseCurrencyText(debtOweMatch[2].trim())
+    if (amount && personName) {
       return {
         intent: 'create_debt',
-        parsedData: { personName: debtOweMatch[1], amount, type: 'owe', description: `Hutang ke ${debtOweMatch[1]}` },
+        parsedData: { personName, amount, type: 'owe', description: `Hutang ke ${personName}` },
         confidence: 'high',
       }
     }
   }
 
   // create_debt (lend): "piutang/pinjamkan ke <nama> <amount>"
-  const debtLendMatch = lower.match(/^(?:piutang|pinjamkan|kasih pinjam|lend)\s+(?:ke\s+)?([a-zA-Z]+)\s+([\d.,]+(?:rb|ribu|jt|juta|k)?)/i)
+  const debtLendMatch = lower.match(/^(?:piutang|pinjamkan|kasih pinjam|lend)\s+(?:ke\s+)?([a-zA-Z][a-zA-Z\s]*)\s+([\d.,]+(?:rb|ribu|jt|juta|k)?)/i)
   if (debtLendMatch) {
-    const amount = parseCurrencyText(debtLendMatch[2])
-    if (amount) {
+    const personName = debtLendMatch[1].trim()
+    const amount = parseCurrencyText(debtLendMatch[2].trim())
+    if (amount && personName) {
       return {
         intent: 'create_debt',
-        parsedData: { personName: debtLendMatch[1], amount, type: 'lend', description: `Piutang ke ${debtLendMatch[1]}` },
+        parsedData: { personName, amount, type: 'lend', description: `Piutang ke ${personName}` },
         confidence: 'high',
       }
     }

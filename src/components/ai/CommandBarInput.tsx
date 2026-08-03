@@ -2,12 +2,17 @@ import { Command } from 'cmdk'
 import { Search, Loader2 } from 'lucide-react'
 import { useUIStore } from '../../store/useUIStore'
 import { Link } from 'react-router-dom'
+import type { CommandResult } from '../../types'
 
 interface CommandBarInputProps {
   isLoading: boolean
+  query: string
+  onValueChange: (value: string) => void
+  onEnter: () => void
+  result: CommandResult | null
 }
 
-export function CommandBarInput({ isLoading }: CommandBarInputProps) {
+export function CommandBarInput({ isLoading, query, onValueChange, onEnter, result }: CommandBarInputProps) {
   const hasApiKey = !!useUIStore((s) => s.groqApiKey)
 
   return (
@@ -18,6 +23,14 @@ export function CommandBarInput({ isLoading }: CommandBarInputProps) {
           : <Search size={15} className="text-text-muted shrink-0" />
         }
         <Command.Input
+          value={query}
+          onValueChange={onValueChange}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && result) {
+              e.preventDefault()
+              onEnter()
+            }
+          }}
           placeholder="Ketik perintah atau pertanyaan..."
           className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-muted outline-none"
         />

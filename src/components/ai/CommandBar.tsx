@@ -37,12 +37,21 @@ export function CommandBar() {
       overlayClassName=""
     >
       <Dialog.Title className="sr-only">Command Bar</Dialog.Title>
+      <Dialog.Description className="sr-only">
+        Ketik perintah atau pertanyaan untuk AI. Tekan Escape untuk menutup.
+      </Dialog.Description>
       <div
         className="fixed inset-0 bg-black/40 backdrop-blur-sm"
         onClick={closeCommandBar}
       />
       <div className="relative w-full max-w-lg bg-bg-card border border-border rounded-2xl shadow-2xl overflow-hidden">
-        <CommandBarInput isLoading={isLoading} />
+        <CommandBarInput
+          isLoading={isLoading}
+          query={query}
+          onValueChange={setQuery}
+          onEnter={() => result && handleExecute(result)}
+          result={result}
+        />
 
         <Command.List className="max-h-80 overflow-y-auto">
           {result ? (

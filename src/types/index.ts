@@ -95,9 +95,10 @@ export type TodoPriority = TodoItem['priority']
 export type AIModel =
   | 'llama-3.3-70b-versatile'
   | 'llama-3.1-8b-instant'
-  | 'llama3-8b-8192'
-  | 'mixtral-8x7b-32768'
-  | 'gemma2-9b-it'
+  | 'meta-llama/llama-4-maverick-17b-128e-instruct'
+  | 'compound-beta-mini'
+  | (string & {})
+
 
 export interface CommandResult {
   intent: 'create_todo' | 'create_goal' | 'create_debt' | 'create_activity' | 'query' | 'unknown'
